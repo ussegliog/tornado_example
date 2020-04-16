@@ -43,16 +43,18 @@ if __name__ == "__main__":
     print("At the end :" + req.text)
         
     # # Get task Id
-    # taskIDJson = json.loads(req.text)
+    taskIDJson = json.loads(req.text)
     
-    # #### 2): Wait for SUCCESS or FAILURE or REVOKED and Get Status + Response for previous task ####
-    # # Get status/response
-    # req = requests.get(BASE_URL + "check_request",
-    #                     data=json.dumps(taskIDJson),
-    #                     headers=headers)
+    #### 2): Wait for SUCCESS or FAILURE or REVOKED and Get Status + Response for previous task ####
+    # Get status/response
+    req = requests.get(BASE_URL + "number_request",
+                        data=json.dumps(taskIDJson),
+                        headers=headers)
 
-    # taskResponseJson = json.loads(req.text)
-    # status = json.loads(req.text)['status'] 
+    print("At the end :" + req.text)
+    
+    #taskResponseJson = json.loads(req.text)
+    #status = json.loads(req.text)['status'] 
     
     # while (status != "SUCCESS" and status != "FAILURE" and status != "REVOKED"):
 

@@ -6,7 +6,12 @@ Define all available views/handlers for our Tornado Application
 """
 
 from tornado.web import RequestHandler
+from tornado_sqlalchemy import as_future, SessionMixin, SQLAlchemy
 import json
+import pickle
+
+from main_app.models import Request
+from main_app.models import Numbers
 
 # First Handler : Helloworld
 class HelloWorld(RequestHandler):
@@ -22,7 +27,7 @@ class HelloWorld(RequestHandler):
 
 
         
-class NumberRequest(RequestHandler):
+class NumberRequest(RequestHandler, SessionMixin):
     """PHandle request and main transactions into the request table of the DB."""
 
     """Allow GET and POST requests."""
@@ -45,10 +50,22 @@ class NumberRequest(RequestHandler):
 
 
     def get(self):
-        """Handle a GET request and repeat input data."""
-        self.send_response(self.form_data, 201)
+        """Handle a GET request and get input data."""
+        print(self.form_data['rid'])
+        count = 0
+        with self.make_session() as session:
+            count = session.query(Request).count()
+
+        self.send_response(json.dumps({'count :': count}), 201)
 
     def post(self):
         """Handle a POST request and repeat input data."""
-        #self.write(self.form_data)
+        print(self.form_data['rid'])
+        
+        with self.make_session() as session:
+            my_request = Request(request_id=self.form_data['rid'],
+                                 number_list=pickle.dumps(self.form_data['numbers']),
+                                 jobToDo_list=pickle.dumps(self.form_data['jobtodo']))
+            session.add(my_request)
+
         self.send_response(self.form_data, 201)
