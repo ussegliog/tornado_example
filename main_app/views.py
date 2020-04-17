@@ -7,6 +7,7 @@ Define all available views/handlers for our Tornado Application
 
 from tornado.web import RequestHandler
 from tornado_sqlalchemy import as_future, SessionMixin, SQLAlchemy
+from tornado import gen
 import json
 import pickle
 
@@ -48,24 +49,52 @@ class NumberRequest(RequestHandler, SessionMixin):
         self.set_status(status)
         self.write(json.dumps(data))
 
-
+    # Async GET
+    @gen.coroutine
     def get(self):
         """Handle a GET request and get input data."""
-        print(self.form_data['rid'])
+
+        print("GET for rid :" + str(self.form_data['rid']))
         count = 0
         with self.make_session() as session:
             count = session.query(Request).count()
 
         self.send_response(json.dumps({'count :': count}), 201)
 
+    # Async POST
+    @gen.coroutine
     def post(self):
-        """Handle a POST request and repeat input data."""
-        print(self.form_data['rid'])
-        
-        with self.make_session() as session:
-            my_request = Request(request_id=self.form_data['rid'],
-                                 number_list=pickle.dumps(self.form_data['numbers']),
-                                 jobToDo_list=pickle.dumps(self.form_data['jobtodo']))
-            session.add(my_request)
+        """Handle a POST request and insert input data into our db."""
 
-        self.send_response(self.form_data, 201)
+        print("POST for rid :" + str(self.form_data['rid']))
+        
+        response = "OK"
+
+        number_list=pickle.dumps(self.form_data['numbers'])
+        jobtodo_list=pickle.dumps(self.form_data['jobtodo'])
+        request_id = self.form_data['rid']
+        
+        # Put the request into our DB : into request and number tables
+        try :
+            # First into request table
+            with self.make_session() as session:
+                my_request = Request(request_id=request_id,
+                                     number_list=number_list,
+                                     jobToDo_list=jobtodo_list)
+                session.add(my_request)
+
+            # Second into number table
+            # Loop on number_list and jobtodo_list to store one by one number into number table
+            for i in range(0, len(number_list)):
+                my_number = Numbers(numbers=number_list[i], jobToDo=jobtodo_list[i],
+                                    request_id=request_id)
+                session.add(my_number)
+
+            # Save chgts into our DB
+            #db.session.commit()
+
+        except Exception as exc :
+            # Adapt response if exception (usually if rid is already into request table)
+            response = "Error during DB transaction : Please Check the request"    
+
+        self.send_response(response, 201)
