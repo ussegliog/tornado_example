@@ -149,6 +149,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if (args.mode == "async") :
+        # Async mode to test it (no need for us)
         print("Asynchronous mode for client")
         # Event loop
         IOLoop.current().run_sync(functools.partial(main_async, args.rid, args.nb))

@@ -52,6 +52,8 @@ def main_async(rid):
         print("Error: " + str(e))
 
 
+    #yield gen.sleep(10)
+        
     #### 2): Wait for SUCCESS or FAILURE with yield ####
     # Check if response if done or cancelled
     if not (response.cancelled() or response.done()):
@@ -130,6 +132,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if (args.mode == "async") :
+        # Async mode to test it (no need for us)
         print("Asynchronous mode for client")
         # Event loop
         IOLoop.current().run_sync(functools.partial(main_async, args.rid))

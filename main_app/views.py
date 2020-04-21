@@ -8,11 +8,15 @@ Define all available views/handlers for our Tornado Application
 from tornado.web import RequestHandler
 from tornado_sqlalchemy import as_future, SessionMixin, SQLAlchemy
 from tornado import gen
+from tornado import concurrent
+from tornado import process
+import sqlalchemy
 import json
 import pickle
 
 from main_app.models import Request
 from main_app.models import Numbers
+from main_app.extensions import executor
 
 # First Handler : Helloworld
 class HelloWorld(RequestHandler):
@@ -34,6 +38,8 @@ class NumberRequest(RequestHandler, SessionMixin):
     """Allow GET and POST requests."""
     SUPPORTED_METHODS = ("GET", "POST",)
 
+    executor = executor
+    
     # Override prepare function to get request argument 
     def prepare(self):
         self.form_data = json.loads(self.request.body)
@@ -49,31 +55,17 @@ class NumberRequest(RequestHandler, SessionMixin):
         self.set_status(status)
         self.write(json.dumps(data))
 
-    # Async GET
-    @gen.coroutine
-    def get(self):
-        """Handle a GET request and get input data."""
-
-        print("GET for rid :" + str(self.form_data['rid']))
-        count = 0
-        with self.make_session() as session:
-            count = session.query(Request).count()
-
-        self.send_response(json.dumps({'count :': count}), 201)
-
-    # Async POST
-    @gen.coroutine
-    def post(self):
-        """Handle a POST request and insert input data into our db."""
-
-        print("POST for rid :" + str(self.form_data['rid']))
-        
+    # Handle post (on one thread)
+    @concurrent.run_on_executor    
+    def handle_post(self, form_data) :
         response = "OK"
 
-        number_list=pickle.dumps(self.form_data['numbers'])
-        jobtodo_list=pickle.dumps(self.form_data['jobtodo'])
-        request_id = self.form_data['rid']
+        print("Executing on : " + str(process.task_id()))
         
+        number_list=pickle.dumps(form_data['numbers'])
+        jobtodo_list=pickle.dumps(form_data['jobtodo'])
+        request_id = form_data['rid']
+
         # Put the request into our DB : into request and number tables
         try :
             # First into request table
@@ -93,8 +85,39 @@ class NumberRequest(RequestHandler, SessionMixin):
             # Save chgts into our DB
             #db.session.commit()
 
-        except Exception as exc :
+        except sqlalchemy.exc.IntegrityError :
             # Adapt response if exception (usually if rid is already into request table)
-            response = "Error during DB transaction : Please Check the request"    
+            response = "Error during DB transaction : Please Check the request" 
+            
+        except :
+            response = "Error during post request"
+            
+
+        
+    # Async GET
+    @gen.coroutine
+    def get(self):
+        """Handle a GET request and get input data."""
+
+        print("GET for rid :" + str(self.form_data['rid']))
+        count = 0
+        with self.make_session() as session:
+            count = session.query(Request).count()
+
+        self.send_response(json.dumps({'count :': count}), 201)
+
+    # Async POST
+    @gen.coroutine
+    def post(self):
+        """Handle a POST request and insert input data into our db."""
+        
+        print("POST for rid :" + str(self.form_data['rid']))
+        
+        response = "OK"
+
+        #yield gen.sleep(5)
+
+        # If yield => wait and retrun a response if not yield => future
+        concurent_Future = self.handle_post(form_data=self.form_data)
 
         self.send_response(response, 201)
