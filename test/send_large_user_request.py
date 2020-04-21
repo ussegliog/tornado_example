@@ -71,13 +71,14 @@ def main_async(rid, nb):
             if (response.cancelled() or response.done()):
                 print("Done ")
 
-        print("Response : " + response.result().body.decode("utf-8"))
-
+        #print("Response : " + response.result().body.decode("utf-8"))
+        checkRequestBody = json.loads(response.result().body)
+        print("Response : " + checkRequestBody)
 
         #### 3): request GET on http://127.0.0.1:8888/number_request #### 
         request_get = httpclient.HTTPRequest(BASE_URL + "number_request",
                                              method="GET", headers=headers,
-                                             body=json.dumps(dataRequest),
+                                             body=checkRequestBody,
                                              allow_nonstandard_methods=True)
 
 

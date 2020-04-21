@@ -14,4 +14,3 @@ from config.settings import SQLALCHEMY_DATABASE_URI
 executor = concurrent.futures.ThreadPoolExecutor(8)
 # Database
 db = SQLAlchemy(url=SQLALCHEMY_DATABASE_URI)
-

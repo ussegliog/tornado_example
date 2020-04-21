@@ -51,9 +51,7 @@ def main_async(rid):
         # Other errors are possible, such as IOError.
         print("Error: " + str(e))
 
-
-    #yield gen.sleep(10)
-        
+      
     #### 2): Wait for SUCCESS or FAILURE with yield ####
     # Check if response if done or cancelled
     if not (response.cancelled() or response.done()):
@@ -64,6 +62,7 @@ def main_async(rid):
         if (response.cancelled() or response.done()):
             print("Done ")
 
+    print(type(response))
     print("Response : " + response.result().body.decode("utf-8"))
     
 
