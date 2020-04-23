@@ -42,6 +42,9 @@ def main_async(rid, nb):
 
     response = ""
 
+    if (int(nb) < 10) :
+        print(dataRequest)
+
     request = httpclient.HTTPRequest(BASE_URL + "number_request",
                                      method="POST", headers=headers,
                                      body=json.dumps(dataRequest))
@@ -73,12 +76,23 @@ def main_async(rid, nb):
 
         #print("Response : " + response.result().body.decode("utf-8"))
         checkRequestBody = json.loads(response.result().body)
-        print("Response : " + checkRequestBody)
+        print("Response Post : " + checkRequestBody)
 
+        # yield a sleep : To be sure that request is settled into DB :
+        # This way because memory check/handle DOES NOT WORK
+        sleepLast = 2
+        if (int(nb) > 100) : sleepLast = 5
+        if (int(nb) > 1000) : sleepLast = 10
+        if (int(nb) > 10000) : sleepLast = 30
+        if (int(nb) > 50000) : sleepLast = 60
+        if (int(nb) > 100000) : sleepLast = 300
+        yield gen.sleep(sleepLast)
+        
+        
         #### 3): request GET on http://127.0.0.1:8888/number_request #### 
         request_get = httpclient.HTTPRequest(BASE_URL + "number_request",
                                              method="GET", headers=headers,
-                                             body=checkRequestBody,
+                                             body=json.dumps(dataRequest),
                                              allow_nonstandard_methods=True)
 
 
@@ -92,8 +106,9 @@ def main_async(rid, nb):
         except Exception as e:
             # Other errors are possible, such as IOError.
             print("Error: " + str(e))
-
-        print(response.body)
+        
+        if (int(nb) < 10) :    
+            print("Response Get" + response.body.decode("utf-8"))
 
     
     http_client.close()
@@ -115,6 +130,9 @@ def main_sync(rid, nb):
         dataRequest["numbers"].append(random.randint(0, 1000))
         dataRequest["jobtodo"].append(random.choice(processings))
 
+    if (int(nb) < 10) :
+        print(dataRequest)
+        
     # Req is directy a response (not a Future) => sync
     req = requests.post(BASE_URL + "number_request",
                         data=json.dumps(dataRequest),
@@ -126,15 +144,27 @@ def main_sync(rid, nb):
         quit()
 
 
-    print("At the end :" + req.text)
-       
+    print("Response Post :" + req.text)
+
+    # sleep : To be sure that request is settled into DB :
+    # This way because memory check/handle DOES NOT WORK
+    sleepLast = 2
+    if (int(nb) > 100) : sleepLast = 5
+    if (int(nb) > 1000) : sleepLast = 10
+    if (int(nb) > 10000) : sleepLast = 30
+    if (int(nb) > 50000) : sleepLast = 60
+    if (int(nb) > 100000) : sleepLast = 300
+    time.sleep(sleepLast)
+
+    
     #### 2): request GET on http://127.0.0.1:8888/number_request ####
     # Get status/response
     req = requests.get(BASE_URL + "number_request",
                         data=json.dumps(dataRequest),
                         headers=headers)
 
-    print("At the end :" + req.text)
+    if (int(nb) < 10) :
+        print("Responde Get :" + req.text)
     
 
 # Main Program

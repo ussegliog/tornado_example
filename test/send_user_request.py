@@ -34,6 +34,8 @@ def main_async(rid):
     dataRequest["numbers"] =  [51, 52, 53]
     dataRequest["jobtodo"]=  ["sum", "mul", "sum"]
 
+    print(dataRequest)
+    
     response = ""
 
     request = httpclient.HTTPRequest(BASE_URL + "number_request",
@@ -51,7 +53,11 @@ def main_async(rid):
         # Other errors are possible, such as IOError.
         print("Error: " + str(e))
 
-      
+        
+    # yield a sleep : To be sure that request is settled into DB :
+    # This way because memory check/handle DOES NOT WORK
+    yield gen.sleep(1)
+        
     #### 2): Wait for SUCCESS or FAILURE with yield ####
     # Check if response if done or cancelled
     if not (response.cancelled() or response.done()):
@@ -62,8 +68,7 @@ def main_async(rid):
         if (response.cancelled() or response.done()):
             print("Done ")
 
-    print(type(response))
-    print("Response : " + response.result().body.decode("utf-8"))
+    print("Response Post : " + response.result().body.decode("utf-8"))
     
 
     #### 3): request GET on http://127.0.0.1:8888/number_request #### 
@@ -84,7 +89,8 @@ def main_async(rid):
         # Other errors are possible, such as IOError.
         print("Error: " + str(e))
 
-    print(response.body)
+
+    print("Response Get : " + response.body.decode("utf-8"))
     
     
     http_client.close()
@@ -99,6 +105,8 @@ def main_sync(rid):
     dataRequest["numbers"] =  [51, 52, 53]
     dataRequest["jobtodo"]=  ["sum", "mul", "sum"]
 
+    print(dataRequest)
+
     # Req is directy a response (not a Future) => sync
     req = requests.post(BASE_URL + "number_request",
                         data=json.dumps(dataRequest),
@@ -110,7 +118,11 @@ def main_sync(rid):
         quit()
 
 
-    print("At the end :" + req.text)
+    print("Response Post :" + req.text)
+
+    # sleep : To be sure that request is settled into DB :
+    # This way because memory check/handle DOES NOT WORK
+    time.sleep(1)
        
     #### 2): request GET on http://127.0.0.1:8888/number_request ####
     # Get status/response
@@ -118,7 +130,7 @@ def main_sync(rid):
                         data=json.dumps(dataRequest),
                         headers=headers)
 
-    print("At the end :" + req.text)
+    print("Response Get :" + req.text)
     
 if __name__ == "__main__":
     

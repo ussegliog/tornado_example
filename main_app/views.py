@@ -74,7 +74,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         elif fn.done():
             tasks[fn.arg].status = "done"
             tasks[fn.arg].result = fn.result()
-            print('{}: not canceled'.format(fn.arg))
+            print('{}: done'.format(fn.arg))
 
         print(len(tasks))
 
@@ -90,6 +90,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         jobtodo_list=pickle.dumps(form_data['jobtodo'])
         request_id = form_data['rid']
 
+        
         # Put the request into our DB : into request and number tables
         try :
             # First into request table
@@ -98,13 +99,13 @@ class NumberRequest(RequestHandler, SessionMixin):
                                      number_list=number_list,
                                      jobToDo_list=jobtodo_list)
                 session.add(my_request)
-
-            # Second into number table
-            # Loop on number_list and jobtodo_list to store one by one number into number table
-            for i in range(0, len(number_list)):
-                my_number = Numbers(numbers=number_list[i], jobToDo=jobtodo_list[i],
-                                    request_id=request_id)
-                session.add(my_number)
+                
+                # Second into number table
+                # Loop on number_list and jobtodo_list to store one by one number into number table
+                for i in range(0, len(number_list)):
+                    my_number = Numbers(numbers=number_list[i], jobToDo=jobtodo_list[i],
+                                        request_id=request_id)
+                    session.add(my_number)
 
             # Save chgts into our DB
             #db.session.commit()
@@ -129,10 +130,25 @@ class NumberRequest(RequestHandler, SessionMixin):
         if 'rid' in self.form_data :
             print("GET for rid :" + str(self.form_data['rid']))
             count = 0
+            jsonDict = {}
             with self.make_session() as session:
                 count = session.query(Request).count()
 
-            self.send_response(json.dumps({'count': count}), 201)
+                request_id = self.form_data['rid']
+
+                # Query into request table thanks to request_id
+                required_request = session.query(Request).filter_by(request_id=request_id).first()
+
+                required_numbers = session.query(Numbers).filter_by(request_id=request_id).all()
+                
+                # Transform elt to have input request format
+                jsonDict['rid'] = request_id
+                jsonDict['numbers'] = pickle.loads(required_request.number_list)
+                jsonDict['jobtodo'] = pickle.loads(required_request.jobToDo_list)
+                    
+
+            self.send_response(jsonDict, 201)
+            
         elif 'task_id' in self.form_data :
             # Search inside the global dictionary the required task_id
             response = "not found"
