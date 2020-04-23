@@ -12,7 +12,7 @@ Script to apply a simple multiplicaiton to input number (called as subProcess)
 if __name__ == "__main__":
 
     # Global variables for requests
-    BASE_URL = "http://127.0.0.1:5000/"
+    BASE_URL = "http://127.0.0.1:8888/"
     headers = {"Content-type": "application/json"}
     
     # Get input

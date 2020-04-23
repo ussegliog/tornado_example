@@ -102,8 +102,9 @@ class NumberRequest(RequestHandler, SessionMixin):
                 
                 # Second into number table
                 # Loop on number_list and jobtodo_list to store one by one number into number table
-                for i in range(0, len(number_list)):
-                    my_number = Numbers(numbers=number_list[i], jobToDo=jobtodo_list[i],
+                for i in range(0, len(form_data['numbers'])):
+                    my_number = Numbers(numbers=form_data['numbers'][i],
+                                        jobToDo=form_data['jobtodo'][i],
                                         request_id=request_id)
                     session.add(my_number)
 
