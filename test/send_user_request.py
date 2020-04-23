@@ -131,6 +131,38 @@ def main_sync(rid):
                         headers=headers)
 
     print("Response Get :" + req.text)
+
+
+
+    
+    # # Init the data after sum processings 
+    # dataSum = {}
+    # dataSum['numbers_id'] = [1, 2, 3] # Select wanted numbers (after a print...)
+    # dataSum['numbers'] =  dataRequest["numbers"]
+    # # Empty lists
+    # dataSum['jobtodo_new'] = []
+    # dataSum['result'] = []
+    
+    # # Do the sum
+    # for i in range(0,len(dataSum['numbers_id'])):
+    #     dataSum['jobtodo_new'].append('sum_Done')
+    #     res = dataSum['numbers'][i] + 2
+    #     dataSum['result'].append(res)
+
+    # # Make the upate with the web service request
+    # req = requests.post(BASE_URL + "update_request",
+    #                     data=json.dumps(dataSum),
+    #                     headers=headers)
+
+    # # sleep : To be sure that request is settled into DB :
+    # # This way because memory check/handle DOES NOT WORK
+    # time.sleep(1)
+
+    # req = requests.get(BASE_URL + "number_request",
+    #                     data=json.dumps(dataRequest),
+    #                     headers=headers)
+
+    # print("Response Get :" + req.text)
     
 if __name__ == "__main__":
     

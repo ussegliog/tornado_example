@@ -36,7 +36,7 @@ class HelloWorld(RequestHandler):
         """Handle a GET request for saying Hello World!."""
         self.write("Hello, world!")
         
-        
+# Main Handler : NumberRequest
 class NumberRequest(RequestHandler, SessionMixin):
     """Handle request and main transactions into the request table of the DB."""
 
@@ -193,6 +193,122 @@ class NumberRequest(RequestHandler, SessionMixin):
         
         # If yield => wait and retrun a response if not yield => future
         concurent_Future = self.handle_post(form_data=self.form_data)
+        # Adapt future to store and get result later
+        concurent_Future.arg = str(task_id)
+        concurent_Future.add_done_callback(self.done)
+
+        # post response : task_id
+        self.send_response(json.dumps({'task_id': str(task_id)}), 201)
+
+
+# Handler : Update_NumberRequest
+class Update_NumberRequest(NumberRequest):
+    """Update tables of the DB."""
+
+    """Allow only POST requests."""
+    SUPPORTED_METHODS = ("POST")
+
+    # Executor to run post request in //
+    executor = executor
+
+    # Use the global dict (does not work) : apparently problem with shared memory and cycle ref with tornado
+    # I DON'T KNOW => AVOID SHARED MEMORY
+    # HANDLE TASKS IS COMPLICATED HERE BECAUSE WE CAN'T STORE THE RESULT IN MEMORY AND THEN RETRIVE IT WITH A SEPARATE REQUEST
+    global tasks
+    
+    
+    # Handle post (on one thread)
+    @concurrent.run_on_executor    
+    def update_post(self, Ntable_id, N_list, JTD_list, res_list) :
+
+        print("Update_post executing on : " + str(process.task_id()))
+        
+        # List to store request_id for each number
+        rId_list = []
+
+        # Put the request into our DB : into request and number tables
+        try :
+            # First into request table
+            with self.make_session() as session:
+
+                # Update first, Numbers Table and store request id
+                for i in range(0, len(Ntable_id)):
+                    my_number = session.query(Numbers).get(Ntable_id[i])
+                    # Update my number
+                    my_number.jobToDo = JTD_list[i]
+                    my_number.result_numbers = res_list[i]
+
+                    # Store rid for current number
+                    rId_list.append(my_number.request_id)
+
+                # Udpate then, Request_Table
+                # Get unique rid into our list
+                rid_unique = set(rId_list)
+
+                # Loop on each unique rid
+                for rid in rid_unique:
+                    # Query on request_id
+                    my_request = session.query(Request).filter_by(request_id=rid).first()
+
+                    # Get all indexes with the current rid into rId_list
+                    indexes = [n for n,x in enumerate(rId_list) if x==rid]
+
+                    # Get number_list and jobtodo_list form current request
+                    rNumberList = pickle.loads(my_request.number_list)
+                    new_JobToDo = pickle.loads(my_request.jobToDo_list)
+
+
+                    # Loop on indexes
+                    for ind in indexes:
+                        try :
+                            # Udpate the right "job to do" with the number index
+                            indB = rNumberList.index(N_list[ind])
+                            new_JobToDo[indB] = JTD_list[ind]
+
+                        except ValueError:
+                            print("number is not inside the list => no update")
+
+                    my_request.jobToDo_list = pickle.dumps(new_JobToDo)
+
+                session.commit()
+            
+        except Exception as exc :
+            response = "Error during post request : "
+            print(response + str(exc))
+
+        response = "OK"
+
+        
+    
+     # Async POST
+    @gen.coroutine
+    def post(self):
+        """Handle a POST request and update input data into our db."""
+        
+        response = "OK"
+
+        # Generate a task_id with uuid
+        task_id = uuid.uuid1()
+
+        # Create a EventTask
+        task = EventTask(task_id)
+        # Store the task inside the dictionary
+        tasks[str(task_id)] = task
+        print(len(tasks))
+        
+        task.status = "started"
+
+        # Get data from request
+        number_table_id = self.form_data['numbers_id'] # list of id inside Numbers table
+        numbers_intoRequest = self.form_data['numbers'] # list of numbers
+        jobToDo_new_intoRequest = self.form_data['jobtodo_new'] # list of string
+        res_intoRequest = self.form_data['result'] # list of results
+
+        # If yield => wait and retrun a response if not yield => future
+        concurent_Future = self.update_post(Ntable_id=number_table_id,
+                                            N_list=numbers_intoRequest,
+                                            JTD_list=jobToDo_new_intoRequest,
+                                            res_list=res_intoRequest)
         # Adapt future to store and get result later
         concurent_Future.arg = str(task_id)
         concurent_Future.add_done_callback(self.done)
