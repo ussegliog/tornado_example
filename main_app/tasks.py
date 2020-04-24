@@ -17,6 +17,34 @@ import json
 import pickle
 from pathlib import Path
 import subprocess
+from contextlib import contextmanager
+from threading import get_ident
+from sqlalchemy import orm
+
+##### Our contexte Manager : for session handle (from tornado_sqlalchemy with scoped session) ######
+@contextmanager
+def make_session():
+      session = None
+
+      try:
+            #session = db.sessionmaker()
+            # Try to create scope session for Safe-Thread
+            print(get_ident())
+            session = orm.scoped_session(orm.sessionmaker(bind=db.engine), scopefunc=get_ident)
+      
+            yield session
+      except Exception as exc:
+            print(exc)
+            if session:
+                  session.rollback()
+            raise
+      else:
+            session.commit()
+      finally:
+            if session:
+                  session.close()
+
+
 
 ############# EventTask class ################
 class EventTask():
@@ -69,47 +97,46 @@ def sum_task():
             # Generate a task_id with uuid
             currentTaskId = uuid.uuid1()
 
-            
+            inputJson = {}
+            numbers_to_sum = [] # empty list
+
+            # Make the query on number to retrieve the input for sum processing
             try :
-                  # Create a session
-                  session = db.sessionmaker()
+                  with make_session() as session:
 
-                  # Select into Numbers table, number with sum to do
-                  numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
+                        # Select into Numbers table, number with sum to do
+                        numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
 
-                  print("Number of sum : " + str(len(numbers_to_sum)))
+                        print("Number of sum : " + str(len(numbers_to_sum)))
 
-                  # Check number to sum (must be > 0)
-                  if len(numbers_to_sum) > 0:
-                        # Write numbers into a file
-                        inputJson = {}
-                        inputJson['numbers_id'] = []
-                        inputJson['numbers'] = []
+                        # Check number to sum (must be > 0)
+                        if len(numbers_to_sum) > 0:
+                              # Write numbers into a file
+                              inputJson['numbers_id'] = []
+                              inputJson['numbers'] = []
 
-                        for i in range(0,len(numbers_to_sum)):
-                              # Extract id and numbers information
-                              inputJson['numbers_id'].append(numbers_to_sum[i].id)
-                              inputJson['numbers'].append(numbers_to_sum[i].numbers)
+                              for i in range(0,len(numbers_to_sum)):
+                                    # Extract id and numbers information
+                                    inputJson['numbers_id'].append(numbers_to_sum[i].id)
+                                    inputJson['numbers'].append(numbers_to_sum[i].numbers)
 
-                              # Update jobToDo with Doing
-                              numbers_to_sum[i].jobToDo = "sum_Doing"
+                                    # Update jobToDo with Doing
+                                    numbers_to_sum[i].jobToDo = "sum_Doing"
 
-                        # Commit changes into our DB
-                        session.commit()
                         
             except Exception as exc :
                   response = "Error INTO SUM during post request : "
-                  print(response + str(type(exc)))
+                  print(response + str(exc))
 
-                  
+            # Check number to sum (must be > 0)
+            if len(numbers_to_sum) > 0:
+
                   # Write the json file
                   JSON_PATH = os.path.join(Path(__file__).parent.parent, 'processings/input_files/')
                   JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
-
-
                   with open(JSON_NAME, 'w') as f:
                         json.dump(inputJson, f)
-
+                  
                   # Launch sum processing with a SubProcess
                   SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/sum.py')
                   python_script(SCRIPT_PATH, JSON_NAME)
@@ -128,42 +155,43 @@ def mul_task():
             # Generate a task_id with uuid
             currentTaskId = uuid.uuid1()
 
+            inputJson = {}
+            numbers_to_mul = [] # empty list
+
+            # Make the query on number to retrieve the input for mul processing
             try :
-                  # Create a session
-                  session = db.sessionmaker()
+                  with make_session() as session:
 
-                  # Select into Numbers table, number with mul to do
-                  numbers_to_mul = session.query(Numbers).filter_by(jobToDo="mul").all()
+                        # Select into Numbers table, number with mul to do
+                        numbers_to_mul = session.query(Numbers).filter_by(jobToDo="mul").all()
 
-                  print("Number of mul : " + str(len(numbers_to_mul)))
+                        print("Number of mul : " + str(len(numbers_to_mul)))
 
-                  # Check number to mul (must be > 0)
-                  if len(numbers_to_mul) > 0:
-                        # Write numbers into a file
-                        inputJson = {}
-                        inputJson['numbers_id'] = []
-                        inputJson['numbers'] = []
+                        # Check number to mul (must be > 0)
+                        if len(numbers_to_mul) > 0:
+                              # Write numbers into a file
+                              
+                              inputJson['numbers_id'] = []
+                              inputJson['numbers'] = []
 
-                        for i in range(0,len(numbers_to_mul)):
-                              # Extract id and numbers information
-                              inputJson['numbers_id'].append(numbers_to_mul[i].id)
-                              inputJson['numbers'].append(numbers_to_mul[i].numbers)
+                              for i in range(0,len(numbers_to_mul)):
+                                    # Extract id and numbers information
+                                    inputJson['numbers_id'].append(numbers_to_mul[i].id)
+                                    inputJson['numbers'].append(numbers_to_mul[i].numbers)
 
-                              # Update jobToDo with Doing
-                              numbers_to_mul[i].jobToDo = "mul_Doing"
-
-                        # Commit changes into our DB
-                        session.commit()
-                        
+                                    # Update jobToDo with Doing
+                                    numbers_to_mul[i].jobToDo = "mul_Doing"
+                                    
             except Exception as exc :
                   response = "Error INTO MUL during post request : "
-                  print(response + str(type(exc)))
-                        
+                  print(response + str((exc)))
+
+            # Check number to mul (must be > 0)
+            if len(numbers_to_mul) > 0:
+
                   # Write the json file
                   JSON_PATH = os.path.join(Path(__file__).parent.parent, 'processings/input_files/')
                   JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
-
-
                   with open(JSON_NAME, 'w') as f:
                         json.dump(inputJson, f)
 

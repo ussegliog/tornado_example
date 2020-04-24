@@ -19,7 +19,7 @@ import uuid
 from main_app.models import Request
 from main_app.models import Numbers
 from main_app.extensions import executor
-from main_app.tasks import EventTask
+from main_app.tasks import EventTask, make_session
 
 # list of tasks to store future and get result/status : Global 
 tasks = dict()
@@ -93,8 +93,8 @@ class NumberRequest(RequestHandler, SessionMixin):
         
         # Put the request into our DB : into request and number tables
         try :
-            # First into request table
-            with self.make_session() as session:
+            # First into request table (make_session from tasks.py)
+            with make_session() as session:
                 my_request = Request(request_id=request_id,
                                      number_list=number_list,
                                      jobToDo_list=jobtodo_list)
@@ -132,7 +132,8 @@ class NumberRequest(RequestHandler, SessionMixin):
             print("GET for rid :" + str(self.form_data['rid']))
             count = 0
             jsonDict = {}
-            with self.make_session() as session:
+            # make_session from tasks.py
+            with make_session() as session:
                 count = session.query(Request).count()
 
                 request_id = self.form_data['rid']
@@ -229,8 +230,8 @@ class Update_NumberRequest(NumberRequest):
 
         # Put the request into our DB : into request and number tables
         try :
-            # First into request table
-            with self.make_session() as session:
+            # First into request table (make_session from tasks.py)
+            with make_session() as session:
 
                 # Update first, Numbers Table and store request id
                 for i in range(0, len(Ntable_id)):
@@ -271,7 +272,7 @@ class Update_NumberRequest(NumberRequest):
 
                     my_request.jobToDo_list = pickle.dumps(new_JobToDo)
 
-                session.commit()
+                #session.commit()
             
         except Exception as exc :
             response = "Error INTO update_post during post request : "
