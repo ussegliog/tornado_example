@@ -274,8 +274,8 @@ class Update_NumberRequest(NumberRequest):
                 session.commit()
             
         except Exception as exc :
-            response = "Error during post request : "
-            print(response + str(exc))
+            response = "Error INTO update_post during post request : "
+            print(response + str(type(exc)))
 
         response = "OK"
 
