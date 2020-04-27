@@ -27,9 +27,7 @@ def make_session():
       session = None
 
       try:
-            #session = db.sessionmaker()
-            # Try to create scope session for Safe-Thread
-            print(get_ident())
+            # Try to create scope session for Thread Safety
             session = orm.scoped_session(orm.sessionmaker(bind=db.engine), scopefunc=get_ident)
       
             yield session
