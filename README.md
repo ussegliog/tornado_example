@@ -13,7 +13,7 @@ Two kind of corotines/tasks are available with polling tasks and event tasks. Th
 
 A main technology is used inside the code : Tornado. Tornado is a Python web framework which allows asynchronous code. The module asyncio is included inside Tornado and the library tornado.gen and higher concurrence is available with the tornado.concurrent module.
 
-A ORM (tornado-sqlalchemy) provides a generic API to make transactions with several kind of databases (PostGres, MySQL, Sqlite ...). For this code, a sqlite database is settled.
+An ORM (tornado-sqlalchemy) provides a generic API to make transactions with several kind of databases (PostGres, MySQL, Sqlite ...). For this code, a sqlite database is settled.
 
 ## Code organization
 
@@ -30,7 +30,13 @@ The main_app repository contains the heart of source files, with the following o
 
 ![MainApp directory : ](./img/Rep_mainApp.png?raw=true "MainApp directory/")
 
+This directory contains all mechanisms to handle requests, background tasks and DB transactions with :
+* *models* : Specify DB Tables
+* *views* : Define available views/handlers for the Web Server (use the executor to launch some coroutines)
+* *tasks* : Implement background tasks (launched by application)
 
 
 
 ## Limitations
+Despite several protections, the code remains unstable. First of all, the DataBase access across tornado-sqlalchemy is not Thread-Safe. A new context manager was created to include scoped session. Other problems occur with our Database with for example, sqlalchemy.exc.OperationalError due to a lock on the DB. A higher lock could be useful to solve this.
+Besides errors on our database, another limitation consists to handle high concurrence with some tasks launched on a executor (a ThreadPoolExecutor). It seems difficult to retrieve status/response for these tasks. A memory storage of Future does not work and a more complex storage has to be settled.  
