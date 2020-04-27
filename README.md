@@ -17,6 +17,9 @@ A ORM (tornado-sqlalchemy) provides a generic API to make transactions with seve
 
 ## Code organization
 
+![Tornado directory : ](./img/Rep_Tornado.png?raw=true "Tornado directory/")
+
+
 The Tornado application is put at the center with four directories to add specific features or tests/processings :
 * *config/* : Define global path or configuration
 * *test/* : Simulate user requests
@@ -25,6 +28,7 @@ The Tornado application is put at the center with four directories to add specif
 The main_app repository contains the heart of source files, with the following organization:
 
 
+![MainApp directory : ](./img/Rep_mainApp.png?raw=true "MainApp directory/")
 
 
 
