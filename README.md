@@ -11,9 +11,20 @@ Two kind of corotines/tasks are available with polling tasks and event tasks. Th
 
 ## Technologies
 
+A main technology is used inside the code : Tornado. Tornado is a Python web framework which allows asynchronous code. The module asyncio is included inside Tornado and the library tornado.gen and higher concurrence is available with the tornado.concurrent module.
 
+A ORM (tornado-sqlalchemy) provides a generic API to make transactions with several kind of databases (PostGres, MySQL, Sqlite ...). For this code, a sqlite database is settled.
 
 ## Code organization
+
+The Tornado application is put at the center with four directories to add specific features or tests/processings :
+* *config/* : Define global path or configuration
+* *test/* : Simulate user requests
+* *processings/* : Define simple processings (python scripts)
+* *main_app/* : Main diretory to handle incoming requests.
+The main_app repository contains the heart of source files, with the following organization:
+
+
 
 
 
