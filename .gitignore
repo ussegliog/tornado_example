@@ -2,6 +2,8 @@
 *.db
 *.rdb
 
+*.history
+
 processings/input_files/*.json
 
 # Byte-compiled / optimized / DLL files
