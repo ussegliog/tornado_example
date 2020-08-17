@@ -40,4 +40,4 @@ This directory contains all mechanisms to handle requests, background tasks and 
 ## Limitations
 Despite several protections, the code remains unstable. First of all, the DataBase access across tornado-sqlalchemy is not Thread-Safe. A new context manager was created to include scoped session. Other problems occur with our Database with for example, sqlalchemy.exc.OperationalError due to a lock on the DB. A higher lock could be useful to solve this.
 
-Besides errors on our database, another limitation consists to handle high concurrence with some tasks launched on a executor (a ThreadPoolExecutor). It seems difficult to retrieve status/response for these tasks. A memory storage of Future does not work and a more complex storage has to be settled.  
+Besides errors on our database, another limitation consists to handle high concurrence with some tasks launched on a executor. **With a ThreadPoolExecutor as executor and with only one tornado process for the application, a memory storage of Futures seems to work**. However, for futher implementations (a use of processes for example), a more sophisticated way to shared information should be settled.   
