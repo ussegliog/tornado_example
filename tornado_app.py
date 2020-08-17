@@ -30,13 +30,16 @@ if __name__ == "__main__":
 
     http_server = HTTPServer(app)
     http_server.listen(options.port)
-    http_server.start(0)   # Processes = number of CPUs
-  
-    
+
+    # To launch several tornado process app in //
+    #http_server.start(0)   # Processes = number of CPUs
     # assign background tasks
-    if process.task_id() == 0:
-        IOLoop.instance().spawn_callback(sum_task)
-        IOLoop.instance().spawn_callback(mul_task)
-        
+    # if process.task_id() == 0:
+    #     IOLoop.instance().spawn_callback(sum_task)
+    #     IOLoop.instance().spawn_callback(mul_task)
+
+    IOLoop.instance().spawn_callback(sum_task)
+    IOLoop.instance().spawn_callback(mul_task)
+    
     print('Listening on http://localhost:%i' % options.port)
     IOLoop.current().start()

@@ -10,6 +10,7 @@ from tornado_sqlalchemy import as_future, SessionMixin, SQLAlchemy
 from tornado import gen
 from tornado import concurrent
 from tornado import process
+from tornado import locks
 
 import sqlalchemy
 import json
@@ -21,8 +22,9 @@ from main_app.models import Numbers
 from main_app.extensions import executor
 from main_app.tasks import EventTask, make_session
 
-# list of tasks to store future and get result/status : Global 
+# list of tasks to store future and get result/status : Global
 tasks = dict()
+lock_tasks = locks.Lock()
 
 
 # First Handler : Helloworld
@@ -67,17 +69,21 @@ class NumberRequest(RequestHandler, SessionMixin):
         self.write(json.dumps(data))
 
     # Callback function (called when a "event task" is done)
+    @gen.coroutine
     def done(self, fn):
-        if fn.cancelled():
-            tasks[fn.arg].status = "cancelled"
-            print('{}: canceled'.format(fn.arg))
-        elif fn.done():
-            tasks[fn.arg].status = "done"
-            tasks[fn.arg].result = fn.result()
-            print('{}: done'.format(fn.arg))
+        global tasks
+        global lock_tasks
 
-        print(len(tasks))
-
+        with (yield lock_tasks.acquire()):
+            if fn.cancelled():
+                tasks[fn.arg].status = "cancelled"
+                print('{}: canceled'.format(fn.arg))
+            elif fn.done():
+                tasks[fn.arg].status = "done"
+                tasks[fn.arg].result = fn.result()
+                print('{}: done'.format(fn.arg))
+        
+            
     # Handle post (on one thread)
     @concurrent.run_on_executor    
     def handle_post(self, form_data) :
@@ -119,8 +125,6 @@ class NumberRequest(RequestHandler, SessionMixin):
             response = "Error during post request"
 
         
-
-        
     # Async GET
     @gen.coroutine
     def get(self):
@@ -154,7 +158,8 @@ class NumberRequest(RequestHandler, SessionMixin):
         elif 'task_id' in self.form_data :
             # Search inside the global dictionary the required task_id
             response = "not found"
-            print(len(tasks))
+            print("GET Nb tasks into global dict is : " + str(len(tasks)))
+            
             
             if self.form_data['task_id'] in tasks :
                 # Get status and result (if done)
@@ -180,20 +185,26 @@ class NumberRequest(RequestHandler, SessionMixin):
         
         response = "OK"
 
-        #yield gen.sleep(5)
-
+        global tasks
+        global lock_tasks
+        
         # Generate a task_id with uuid
         task_id = uuid.uuid1()
 
         # Create a EventTask
         task = EventTask(task_id)
-        # Store the task inside the dictionary
-        tasks[str(task_id)] = task
-        print(len(tasks))
         
+        # Store the task inside the dictionary
+        with (yield lock_tasks.acquire()):
+            tasks[str(task_id)] = task
+            print("POST REQUEST Nb tasks into global dict is : " + str(len(tasks))
+                  + " on " + str(process.task_id()))
+            
+            
         task.status = "started"
         
         # If yield => wait and retrun a response if not yield => future
+        #concurent_Future = executor.submit(self.handle_post, form_data=self.form_data)
         concurent_Future = self.handle_post(form_data=self.form_data)
         # Adapt future to store and get result later
         concurent_Future.arg = str(task_id)
@@ -209,10 +220,8 @@ class Update_NumberRequest(NumberRequest):
 
     """Allow only POST requests."""
     SUPPORTED_METHODS = ("POST")
-
-    # Executor to run post request in //
-    executor = executor
-
+ 
+    
     # Use the global dict (does not work) : apparently problem with shared memory and cycle ref with tornado
     # I DON'T KNOW => AVOID SHARED MEMORY
     # HANDLE TASKS IS COMPLICATED HERE BECAUSE WE CAN'T STORE THE RESULT IN MEMORY AND THEN RETRIVE IT WITH A SEPARATE REQUEST
@@ -286,7 +295,10 @@ class Update_NumberRequest(NumberRequest):
     @gen.coroutine
     def post(self):
         """Handle a POST request and update input data into our db."""
-        
+
+        global tasks
+        global lock_tasks
+                
         response = "OK"
 
         # Generate a task_id with uuid
@@ -294,9 +306,13 @@ class Update_NumberRequest(NumberRequest):
 
         # Create a EventTask
         task = EventTask(task_id)
+        
         # Store the task inside the dictionary
-        tasks[str(task_id)] = task
-        print(len(tasks))
+        with (yield lock_tasks.acquire()):
+            tasks[str(task_id)] = task
+            print("POST UPDATE NUMBER Nb tasks into global dict is : " + str(len(tasks)) +
+                  " on " + str(process.task_id()))
+            
         
         task.status = "started"
 
@@ -314,6 +330,6 @@ class Update_NumberRequest(NumberRequest):
         # Adapt future to store and get result later
         concurent_Future.arg = str(task_id)
         concurent_Future.add_done_callback(self.done)
-
+        
         # post response : task_id
         self.send_response(json.dumps({'task_id': str(task_id)}), 201)
