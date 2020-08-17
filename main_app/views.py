@@ -16,6 +16,7 @@ import sqlalchemy
 import json
 import pickle
 import uuid 
+import time
 
 from main_app.models import Request
 from main_app.models import Numbers
@@ -48,9 +49,8 @@ class NumberRequest(RequestHandler, SessionMixin):
     # Executor to run post request in //
     executor = executor
 
-    # Use the global dict (does not work) : apparently problem with shared memory and cycle ref with tornado
-    # I DON'T KNOW => AVOID SHARED MEMORY
-    # HANDLE TASKS IS COMPLICATED HERE BECAUSE WE CAN'T STORE THE RESULT IN MEMORY AND THEN RETRIVE IT WITH A SEPARATE REQUEST
+    # Use the global dict (work only with one process for tornado app) :
+    # only one process to listen on input port (otherwise this can't work
     global tasks
     
     # Override prepare function to get request argument 
@@ -96,6 +96,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         jobtodo_list=pickle.dumps(form_data['jobtodo'])
         request_id = form_data['rid']
 
+        #time.sleep(10)
         
         # Put the request into our DB : into request and number tables
         try :
@@ -168,10 +169,10 @@ class NumberRequest(RequestHandler, SessionMixin):
                 if status == "done" :
                     result = tasks[self.form_data['task_id']].result
 
-                self.send_response(json.dumps({'status': status, 'result' : result}), 201)
+                self.send_response({'status': status, 'result' : result}, 201)
 
             else :
-                self.send_response(json.dumps({'status': response}), 201)
+                self.send_response({'status': response}, 201)
 
         else :
             self.send_response("Wrong get request", 400)
@@ -202,7 +203,7 @@ class NumberRequest(RequestHandler, SessionMixin):
             
             
         task.status = "started"
-        
+
         # If yield => wait and retrun a response if not yield => future
         #concurent_Future = executor.submit(self.handle_post, form_data=self.form_data)
         concurent_Future = self.handle_post(form_data=self.form_data)
@@ -222,9 +223,8 @@ class Update_NumberRequest(NumberRequest):
     SUPPORTED_METHODS = ("POST")
  
     
-    # Use the global dict (does not work) : apparently problem with shared memory and cycle ref with tornado
-    # I DON'T KNOW => AVOID SHARED MEMORY
-    # HANDLE TASKS IS COMPLICATED HERE BECAUSE WE CAN'T STORE THE RESULT IN MEMORY AND THEN RETRIVE IT WITH A SEPARATE REQUEST
+    # Use the global dict (work only with one process for tornado app) :
+    # only one process to listen on input port (otherwise this can't work
     global tasks
     
     

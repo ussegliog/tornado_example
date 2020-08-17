@@ -78,18 +78,47 @@ def main_async(rid, nb):
         checkRequestBody = json.loads(response.result().body)
         print("Response Post : " + checkRequestBody)
 
-        # yield a sleep : To be sure that request is settled into DB :
-        # This way because memory check/handle DOES NOT WORK
-        sleepLast = 2
-        if (int(nb) > 100) : sleepLast = 5
-        if (int(nb) > 1000) : sleepLast = 10
-        if (int(nb) > 10000) : sleepLast = 30
-        if (int(nb) > 50000) : sleepLast = 60
-        if (int(nb) > 100000) : sleepLast = 300
-        yield gen.sleep(sleepLast)
+        # To be sure that request is settled into DB : Wait for status done (with task_id)
+        requestIntoDB = False
+        errorRequest = False
+        request_get_checkTaskId = httpclient.HTTPRequest(BASE_URL + "number_request",
+                                                         method="GET", headers=headers,
+                                                         body=checkRequestBody,
+                                                         allow_nonstandard_methods=True)
         
+        while (not requestIntoDB and not errorRequest) :
+            try:
+                # send the asynchronous request and get a response (because of yield)
+                response = yield http_client.fetch(request_get_checkTaskId)
+
+                status = json.loads(response.body)["status"]
+                
+                if status == "done" :
+                    requestIntoDB = True
+                    
+
+                if status != "done" and status != "started" :
+                    errorRequest = True
+
+                # Sleep 2s
+                yield gen.sleep(2)
+                    
+            except httpclient.HTTPError as e:
+                # HTTPError is raised for non-200 responses; the response
+                # can be found in e.response.
+                print("Error: " + str(e))
+            except Exception as e:
+                # Other errors are possible, such as IOError.
+                print("Error: " + str(e))
+
+        # If not done => probably a problem => quit()
+        if errorRequest :
+            print("Error During the request => quit()")
+            quit()
         
         #### 3): request GET on http://127.0.0.1:8888/number_request #### 
+        print("Request was put into our DB : Time to get with rid")
+
         request_get = httpclient.HTTPRequest(BASE_URL + "number_request",
                                              method="GET", headers=headers,
                                              body=json.dumps(dataRequest),
@@ -146,8 +175,7 @@ def main_sync(rid, nb):
 
     print("Response Post :" + req.text)
 
-    # sleep : To be sure that request is settled into DB :
-    # This way because memory check/handle DOES NOT WORK
+    # sleep : To be sure that request is settled into DB 
     sleepLast = 2
     if (int(nb) > 100) : sleepLast = 5
     if (int(nb) > 1000) : sleepLast = 10
