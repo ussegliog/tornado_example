@@ -104,11 +104,11 @@ def sum_task():
 
                         # Select into Numbers table, number with sum to do
                         numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
-
-                        print("Number of sum : " + str(len(numbers_to_sum)))
-
+                                                      
                         # Check number to sum (must be > 0)
                         if len(numbers_to_sum) > 0:
+                              print("Number of sum : " + str(len(numbers_to_sum)))
+
                               # Write numbers into a file
                               inputJson['numbers_id'] = []
                               inputJson['numbers'] = []
@@ -138,8 +138,6 @@ def sum_task():
                   # Launch sum processing with a SubProcess
                   SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/sum.py')
                   python_script(SCRIPT_PATH, JSON_NAME)
-
-                  print('Hi! from sum_task')
               
 
 # Mul
@@ -163,12 +161,11 @@ def mul_task():
                         # Select into Numbers table, number with mul to do
                         numbers_to_mul = session.query(Numbers).filter_by(jobToDo="mul").all()
 
-                        print("Number of mul : " + str(len(numbers_to_mul)))
-
                         # Check number to mul (must be > 0)
                         if len(numbers_to_mul) > 0:
+                              print("Number of mul : " + str(len(numbers_to_mul)))
+
                               # Write numbers into a file
-                              
                               inputJson['numbers_id'] = []
                               inputJson['numbers'] = []
 
@@ -197,5 +194,3 @@ def mul_task():
                   SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/mul.py')
                   python_script(SCRIPT_PATH, JSON_NAME)
 
-                  print('Hi! from mul_task')
-              

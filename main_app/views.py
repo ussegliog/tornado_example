@@ -50,7 +50,7 @@ class NumberRequest(RequestHandler, SessionMixin):
     executor = executor
 
     # Use the global dict (work only with one process for tornado app) :
-    # only one process to listen on input port (otherwise this can't work
+    # only one process to listen on input port (otherwise this can't work)
     global tasks
     
     # Override prepare function to get request argument 
@@ -88,10 +88,7 @@ class NumberRequest(RequestHandler, SessionMixin):
     @concurrent.run_on_executor    
     def handle_post(self, form_data) :
         response = "OK"
-
-        #global tasks
-        print("Executing on : " + str(process.task_id()))
-        
+          
         number_list=pickle.dumps(form_data['numbers'])
         jobtodo_list=pickle.dumps(form_data['jobtodo'])
         request_id = form_data['rid']
@@ -121,7 +118,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         except sqlalchemy.exc.IntegrityError :
             # Adapt response if exception (usually if rid is already into request table)
             response = "Error during DB transaction : Please Check the request" 
-            
+            print(response + " (rid must already be registered into DB) ")
         except :
             response = "Error during post request"
 
@@ -131,10 +128,8 @@ class NumberRequest(RequestHandler, SessionMixin):
     def get(self):
         """Handle a GET request and get input data."""
 
-        #global tasks
         # Two kind of get : one for checking if task_id is done and the other to get rid elt
         if 'rid' in self.form_data :
-            print("GET for rid :" + str(self.form_data['rid']))
             count = 0
             jsonDict = {}
             # make_session from tasks.py
@@ -159,8 +154,6 @@ class NumberRequest(RequestHandler, SessionMixin):
         elif 'task_id' in self.form_data :
             # Search inside the global dictionary the required task_id
             response = "not found"
-            print("GET Nb tasks into global dict is : " + str(len(tasks)))
-            
             
             if self.form_data['task_id'] in tasks :
                 # Get status and result (if done)
@@ -182,8 +175,6 @@ class NumberRequest(RequestHandler, SessionMixin):
     def post(self):
         """Handle a POST request and insert input data into our db."""
         
-        print("POST for rid :" + str(self.form_data['rid']))
-        
         response = "OK"
 
         global tasks
@@ -198,8 +189,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         # Store the task inside the dictionary
         with (yield lock_tasks.acquire()):
             tasks[str(task_id)] = task
-            print("POST REQUEST Nb tasks into global dict is : " + str(len(tasks))
-                  + " on " + str(process.task_id()))
+            print("Add from NumberRequest a tasks into our global dict (size : " + str(len(tasks)) + " ) ")
             
             
         task.status = "started"
@@ -224,16 +214,14 @@ class Update_NumberRequest(NumberRequest):
  
     
     # Use the global dict (work only with one process for tornado app) :
-    # only one process to listen on input port (otherwise this can't work
+    # only one process to listen on input port (otherwise this can't work)
     global tasks
     
     
     # Handle post (on one thread)
     @concurrent.run_on_executor    
     def update_post(self, Ntable_id, N_list, JTD_list, res_list) :
-
-        print("Update_post executing on : " + str(process.task_id()))
-        
+ 
         # List to store request_id for each number
         rId_list = []
 
@@ -310,8 +298,7 @@ class Update_NumberRequest(NumberRequest):
         # Store the task inside the dictionary
         with (yield lock_tasks.acquire()):
             tasks[str(task_id)] = task
-            print("POST UPDATE NUMBER Nb tasks into global dict is : " + str(len(tasks)) +
-                  " on " + str(process.task_id()))
+            print("Add from UpdateNumberRequest a tasks into our global dict (size : " + str(len(tasks)) + " ) ")
             
         
         task.status = "started"
