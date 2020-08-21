@@ -79,7 +79,7 @@ class NumberRequest(RequestHandler, SessionMixin):
                 tasks[fn.arg].status = "cancelled"
                 print('{}: canceled'.format(fn.arg))
             elif fn.done():
-                tasks[fn.arg].status = "done"
+                tasks[fn.arg].status = "done (request into our db)"
                 tasks[fn.arg].result = fn.result()
                 print('{}: done'.format(fn.arg))
         
@@ -153,13 +153,13 @@ class NumberRequest(RequestHandler, SessionMixin):
             
         elif 'task_id' in self.form_data :
             # Search inside the global dictionary the required task_id
-            response = "not found"
+            response = "task id not found into the global dictionary"
             
             if self.form_data['task_id'] in tasks :
                 # Get status and result (if done)
                 status = tasks[self.form_data['task_id']].status
                 result = "not yet"
-                if status == "done" :
+                if status.startswith("done") :
                     result = tasks[self.form_data['task_id']].result
 
                 self.send_response({'status': status, 'result' : result}, 201)
@@ -192,7 +192,7 @@ class NumberRequest(RequestHandler, SessionMixin):
             print("Add from NumberRequest a tasks into our global dict (size : " + str(len(tasks)) + " ) ")
             
             
-        task.status = "started"
+        task.status = "started (put request into our db)"
 
         # If yield => wait and retrun a response if not yield => future
         #concurent_Future = executor.submit(self.handle_post, form_data=self.form_data)
@@ -200,7 +200,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         # Adapt future to store and get result later
         concurent_Future.arg = str(task_id)
         concurent_Future.add_done_callback(self.done)
-
+        
         # post response : task_id
         self.send_response(json.dumps({'task_id': str(task_id)}), 201)
 
