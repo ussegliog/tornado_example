@@ -45,10 +45,11 @@ def main(task_id, ip):
             print("Number too large => display only the first ones (10)")
             print("numbers : " +  str(reqDict["numbers"][0:10]))
             print("jobtodo : " + str(reqDict["jobtodo"][0:10]))
+            print("results : " + str(reqDict["results"][0:10]))
         else :
             print("numbers : " +  str(reqDict["numbers"]))
             print("jobtodo : " + str(reqDict["jobtodo"]))
-  
+            print("results : " + str(reqDict["results"]))
 
 # Main Program
 if __name__ == "__main__":

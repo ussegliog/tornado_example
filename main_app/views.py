@@ -101,7 +101,9 @@ class NumberRequest(RequestHandler, SessionMixin):
             with make_session() as session:
                 my_request = Request(request_id=request_id,
                                      number_list=number_list,
-                                     jobToDo_list=jobtodo_list)
+                                     jobToDo_list=jobtodo_list,
+                                     result_list=number_list,
+                                     processed=False) # init results with input numbers and processed to False
                 session.add(my_request)
                 
                 # Second into number table
@@ -141,6 +143,8 @@ class NumberRequest(RequestHandler, SessionMixin):
                 jsonDict['rid'] = request_id
                 jsonDict['numbers'] = pickle.loads(required_request.number_list)
                 jsonDict['jobtodo'] = pickle.loads(required_request.jobToDo_list)
+                jsonDict['results'] = pickle.loads(required_request.result_list)
+                jsonDict['processed'] = required_request.processed
 
         return jsonDict
         
@@ -272,7 +276,7 @@ class Update_NumberRequest(NumberRequest):
                     # Get number_list and jobtodo_list form current request
                     rNumberList = pickle.loads(my_request.number_list)
                     new_JobToDo = pickle.loads(my_request.jobToDo_list)
-
+                    new_results = pickle.loads(my_request.result_list)
 
                     # Loop on indexes
                     for ind in indexes:
@@ -280,11 +284,14 @@ class Update_NumberRequest(NumberRequest):
                             # Udpate the right "job to do" with the number index
                             indB = rNumberList.index(N_list[ind])
                             new_JobToDo[indB] = JTD_list[ind]
+                            new_results[indB] = res_list[ind]
 
                         except ValueError:
                             print("number is not inside the list => no update")
 
                     my_request.jobToDo_list = pickle.dumps(new_JobToDo)
+                    my_request.result_list = pickle.dumps(new_results)
+                    my_request.processed = True
 
                 #session.commit()
             
