@@ -39,10 +39,11 @@ def main(nb, ip):
 
     if (int(nb) > 10) :
         print("Number too large => display only the first ones (10)")
-        print(dataRequest["numbers"][0:10])
-        print(dataRequest["jobtodo"][0:10])
+        print("numbers : " +  str(dataRequest["numbers"][0:10]))
+        print("jobtodo : " + str(dataRequest["jobtodo"][0:10]))
     else :
-        print(dataRequest)
+        print("numbers : " +  str(dataRequest["numbers"]))
+        print("jobtodo : " + str(dataRequest["jobtodo"]))
         
     # Req is directy a response (not a Future) => sync
     req = requests.post(BASE_URL + "number_request",
