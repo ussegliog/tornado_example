@@ -48,8 +48,9 @@ def make_session():
 class EventTask():
       """Class to store main elts for event/request tasks."""
 
-      def __init__(self, task_id) :
+      def __init__(self, task_id, rid=-1) :
         self._task_id = task_id
+        self._rid = rid
         self._status = "not started"
         self._result = None
 
@@ -68,6 +69,14 @@ class EventTask():
       @status.setter 
       def status(self, status) :
         self._status = status
+
+      @property
+      def rid(self) :
+        return self._rid
+
+      @rid.setter 
+      def rid(self, rid) :
+        self._rid = rid
 
         
 ############# Polling tasks ################

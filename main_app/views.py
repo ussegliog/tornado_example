@@ -122,6 +122,27 @@ class NumberRequest(RequestHandler, SessionMixin):
         except :
             response = "Error during post request"
 
+    
+    # Get Results into our db for a given rid
+    def queryDb_withRid(self, rid):
+        jsonDict = {}
+        # make_session from tasks.py
+        with make_session() as session:
+
+            request_id = rid
+
+            # Query into request table thanks to request_id
+            required_request = session.query(Request).filter_by(request_id=request_id).first()
+
+            required_numbers = session.query(Numbers).filter_by(request_id=request_id).all()
+
+            # Transform elt to have input request format
+            if len(required_numbers) > 0 :
+                jsonDict['rid'] = request_id
+                jsonDict['numbers'] = pickle.loads(required_request.number_list)
+                jsonDict['jobtodo'] = pickle.loads(required_request.jobToDo_list)
+
+        return jsonDict
         
     # Async GET
     @gen.coroutine
@@ -130,40 +151,36 @@ class NumberRequest(RequestHandler, SessionMixin):
 
         # Two kind of get : one for checking if task_id is done and the other to get rid elt
         if 'rid' in self.form_data :
-            count = 0
-            jsonDict = {}
-            # make_session from tasks.py
-            with make_session() as session:
-                count = session.query(Request).count()
-
-                request_id = self.form_data['rid']
-
-                # Query into request table thanks to request_id
-                required_request = session.query(Request).filter_by(request_id=request_id).first()
-
-                required_numbers = session.query(Numbers).filter_by(request_id=request_id).all()
-                
-                # Transform elt to have input request format
-                jsonDict['rid'] = request_id
-                jsonDict['numbers'] = pickle.loads(required_request.number_list)
-                jsonDict['jobtodo'] = pickle.loads(required_request.jobToDo_list)
-                    
-
-            self.send_response(jsonDict, 201)
+            jsonRes = self.queryDb_withRid(self.form_data['rid'])
             
+            if len(jsonRes) > 0 : 
+                # if dict not empty
+                self.send_response(jsonRes, 201)
+            else :
+                self.send_response("rid not found into our db ", 200)
+
         elif 'task_id' in self.form_data :
             # Search inside the global dictionary the required task_id
             response = "task id not found into the global dictionary"
             
             if self.form_data['task_id'] in tasks :
-                # Get status and result (if done)
+                # Get status and results (if done)
                 status = tasks[self.form_data['task_id']].status
-                result = "not yet"
+                rid = tasks[self.form_data['task_id']].rid
+
                 if status.startswith("done") :
-                    result = tasks[self.form_data['task_id']].result
+                    # rid into Db => Get numbers, jobtodo and result_numbers
+                    jsonRes = self.queryDb_withRid(rid)
 
-                self.send_response({'status': status, 'result' : result}, 201)
-
+                    if len(jsonRes) > 0 : 
+                        # if dict not empty
+                        # Add status into jsonRes
+                        jsonRes['status'] = status 
+                        self.send_response(jsonRes, 201)
+                    else :
+                        self.send_response("rid not found into our db ", 200)
+                else :
+                    self.send_response({'status': status}, 201)
             else :
                 self.send_response({'status': response}, 201)
 
@@ -184,7 +201,7 @@ class NumberRequest(RequestHandler, SessionMixin):
         task_id = uuid.uuid1()
 
         # Create a EventTask
-        task = EventTask(task_id)
+        task = EventTask(task_id, self.form_data['rid'])
         
         # Store the task inside the dictionary
         with (yield lock_tasks.acquire()):
