@@ -17,7 +17,7 @@ An ORM (tornado-sqlalchemy) provides a generic API to make transactions with sev
 
 ## Code organization
 
-![Tornado directory : ](./img/Rep_Tornado.png?raw=true "Tornado directory/")
+![Tornado directory : ](./img/Rep_Tornado.png "Tornado directory/")
 
 
 The Tornado application is put at the center with four directories to add specific features or tests/processings :
@@ -28,7 +28,7 @@ The Tornado application is put at the center with four directories to add specif
 The main_app repository contains the heart of source files, with the following organization:
 
 
-![MainApp directory : ](./img/Rep_mainApp.png?raw=true "MainApp directory/")
+![MainApp directory : ](./img/Rep_mainApp.png "MainApp directory/")
 
 This directory contains all mechanisms to handle requests, background tasks and DB transactions with :
 * *models* : Specify DB Tables
