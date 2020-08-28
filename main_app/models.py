@@ -8,7 +8,7 @@ _ One to store request and to have a direct interface with views (user APis)
 _ Another one to store number and job_to_do. Uses by processing. 
 """
 
-from sqlalchemy import Column, BigInteger, Integer, String, PickleType
+from sqlalchemy import Column, Boolean, BigInteger, Integer, String, PickleType
 from main_app.extensions import db
 
 # Request table
@@ -19,7 +19,9 @@ class Request(db.Model):
     request_id = Column(Integer, unique=True, nullable=False)
     number_list = Column(PickleType, unique=False, nullable=False)
     jobToDo_list = Column(PickleType, unique=False, nullable=False)
-    
+    result_list = Column(PickleType, unique=False, nullable=False)
+    processed = Column(Boolean, unique=False, nullable=False)
+
     def __repr__(self):
         return '<Request %r>' % self.request_id
 
