@@ -13,7 +13,7 @@ from tornado.web import Application
 
 from main_app.views import HelloWorld, NumberRequest, Update_NumberRequest
 from main_app.tasks import small_loop, sum_task, mul_task
-from main_app.extensions import db, executor
+from main_app.extensions import Base, db_engine, executor
 
 define('port', default=8888, help='port to listen on')
 
@@ -21,12 +21,9 @@ if __name__ == "__main__":
     """Construct and serve the tornado application."""
     app = Application([
         ('/', HelloWorld),  ('/number_request', NumberRequest),
-        ('/update_request', Update_NumberRequest)
-    ],
-    db=db
-    )
+        ('/update_request', Update_NumberRequest)])
 
-    db.create_all()
+    Base.metadata.create_all(db_engine)
 
     http_server = HTTPServer(app)
     http_server.listen(options.port)

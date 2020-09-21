@@ -6,7 +6,6 @@ Define all available views/handlers for our Tornado Application
 """
 
 from tornado.web import RequestHandler
-from tornado_sqlalchemy import as_future, SessionMixin, SQLAlchemy
 from tornado import gen
 from tornado import concurrent
 from tornado import process
@@ -18,8 +17,9 @@ import pickle
 import uuid 
 import time
 
-from main_app.models import Request
+from main_app.models import Requests
 from main_app.models import Numbers
+from main_app.models import Link
 from main_app.extensions import executor
 from main_app.tasks import EventTask, make_session
 
@@ -40,7 +40,7 @@ class HelloWorld(RequestHandler):
         self.write("Hello, world!")
         
 # Main Handler : NumberRequest
-class NumberRequest(RequestHandler, SessionMixin):
+class NumberRequest(RequestHandler):
     """Handle request and main transactions into the request table of the DB."""
 
     """Allow GET and POST requests."""
@@ -99,23 +99,28 @@ class NumberRequest(RequestHandler, SessionMixin):
         try :
             # First into request table (make_session from tasks.py)
             with make_session() as session:
-                my_request = Request(request_id=request_id,
-                                     number_list=number_list,
-                                     jobToDo_list=jobtodo_list,
-                                     result_list=number_list,
-                                     processed=False) # init results with input numbers and processed to False
-                session.add(my_request)
+                my_request = Requests(request_id=request_id,
+                                      processed=False) # init results with input numbers and processed to False
+                
+                
                 
                 # Second into number table
                 # Loop on number_list and jobtodo_list to store one by one number into number table
                 for i in range(0, len(form_data['numbers'])):
-                    my_number = Numbers(numbers=form_data['numbers'][i],
+                    my_number = Numbers(number=form_data['numbers'][i],
                                         jobToDo=form_data['jobtodo'][i],
-                                        request_id=request_id)
+                                        result_number=form_data['numbers'][i])
+                    
+                    # Link request to my_number
+                    my_number.requests.append(my_request)
+                    #my_request.numbers.append(my_number)
+                    
                     session.add(my_number)
 
-            # Save chgts into our DB
-            #db.session.commit()
+                print(request_id)
+                session.add(my_request)
+
+            # Save chgts into our DB : At the end of context manager (same "everywhere")
 
         except sqlalchemy.exc.IntegrityError :
             # Adapt response if exception (usually if rid is already into request table)
@@ -132,19 +137,29 @@ class NumberRequest(RequestHandler, SessionMixin):
         with make_session() as session:
 
             request_id = rid
+            print(request_id)
 
             # Query into request table thanks to request_id
-            required_request = session.query(Request).filter_by(request_id=request_id).first()
+            required_request = session.query(Requests).filter_by(request_id=request_id).first()
 
-            required_numbers = session.query(Numbers).filter_by(request_id=request_id).all()
+
+            # Query into numbers table thanks to many-to-many relationship (with Link table)
+            required_numbers = session.query(Requests, Numbers).filter(Link.request_id == request_id).all()
+            print(required_numbers)
 
             # Transform elt to have input request format
-            if len(required_numbers) > 0 :
-                jsonDict['rid'] = request_id
-                jsonDict['numbers'] = pickle.loads(required_request.number_list)
-                jsonDict['jobtodo'] = pickle.loads(required_request.jobToDo_list)
-                jsonDict['results'] = pickle.loads(required_request.result_list)
-                jsonDict['processed'] = required_request.processed
+            jsonDict['rid'] = request_id
+            jsonDict['processed'] = required_request.processed
+            jsonDict['numbers'] = []
+            jsonDict['jobtodo'] = []
+            jsonDict['results'] = []
+            
+            #if len(required_numbers) > 0 :
+            for x in session.query(Requests, Numbers).filter(Link.request_id == request_id).all():
+                jsonDict['numbers'].append(x.Numbers.number)
+                jsonDict['jobtodo'].append(x.Numbers.jobToDo)
+                jsonDict['results'].append(x.Numbers.result_number)
+                
 
         return jsonDict
         
@@ -256,10 +271,11 @@ class Update_NumberRequest(NumberRequest):
                     my_number = session.query(Numbers).get(Ntable_id[i])
                     # Update my number
                     my_number.jobToDo = JTD_list[i]
-                    my_number.result_numbers = res_list[i]
+                    my_number.result_number = res_list[i]
 
                     # Store rid for current number
-                    rId_list.append(my_number.request_id)
+                    for x in session.query(Requests, Numbers).filter(Link.number_id == Ntable_id[i]).all():
+                        rId_list.append(x.Requests.request_id)
 
                 # Udpate then, Request_Table
                 # Get unique rid into our list
@@ -267,33 +283,18 @@ class Update_NumberRequest(NumberRequest):
 
                 # Loop on each unique rid
                 for rid in rid_unique:
-                    # Query on request_id
-                    my_request = session.query(Request).filter_by(request_id=rid).first()
 
-                    # Get all indexes with the current rid into rId_list
-                    indexes = [n for n,x in enumerate(rId_list) if x==rid]
+                    # Check if request is totally processed
+                    jobToDo_for_current_rid = []
+                    for x in session.query(Requests, Numbers).filter(Link.request_id == rid).all():
+                        jobToDo_for_current_rid.append(x.Numbers.jobToDo)
 
-                    # Get number_list and jobtodo_list form current request
-                    rNumberList = pickle.loads(my_request.number_list)
-                    new_JobToDo = pickle.loads(my_request.jobToDo_list)
-                    new_results = pickle.loads(my_request.result_list)
-
-                    # Loop on indexes
-                    for ind in indexes:
-                        try :
-                            # Udpate the right "job to do" with the number index
-                            indB = rNumberList.index(N_list[ind])
-                            new_JobToDo[indB] = JTD_list[ind]
-                            new_results[indB] = res_list[ind]
-
-                        except ValueError:
-                            print("number is not inside the list => no update")
-
-                    my_request.jobToDo_list = pickle.dumps(new_JobToDo)
-                    my_request.result_list = pickle.dumps(new_results)
-                    my_request.processed = True
-
-                #session.commit()
+                    
+                    if not ("sum" in jobToDo_for_current_rid or "mul" in jobToDo_for_current_rid) :
+                        my_request = session.query(Requests).get(rid)
+                        # Change to processed = True
+                        my_request.processed = True
+                  
             
         except Exception as exc :
             response = "Error INTO update_post during post request : "

@@ -8,32 +8,44 @@ _ One to store request and to have a direct interface with views (user APis)
 _ Another one to store number and job_to_do. Uses by processing. 
 """
 
-from sqlalchemy import Column, Boolean, BigInteger, Integer, String, PickleType
-from main_app.extensions import db
+from sqlalchemy import Column, Boolean, BigInteger, Integer, String, PickleType, ForeignKey, Table
+from sqlalchemy.orm import relationship
+from main_app.extensions import Base
+
+
 
 # Request table
-class Request(db.Model):
-    __tablename__ = "Request"
+class Requests(Base):
+    __tablename__ = "request"
     
-    id = Column(Integer, primary_key=True)
-    request_id = Column(Integer, unique=True, nullable=False)
-    number_list = Column(PickleType, unique=False, nullable=False)
-    jobToDo_list = Column(PickleType, unique=False, nullable=False)
-    result_list = Column(PickleType, unique=False, nullable=False)
+    #id = Column(Integer, primary_key=True)
+    request_id = Column(Integer, primary_key=True)
     processed = Column(Boolean, unique=False, nullable=False)
+    
+    numbers = relationship('Numbers', secondary='link')
 
     def __repr__(self):
         return '<Request %r>' % self.request_id
 
 # Number table 
-class Numbers(db.Model):
-    __tablename__ = "Numbers"
+class Numbers(Base):
+    __tablename__ = "number"
     
     id = Column(Integer, primary_key=True)
-    numbers = Column(Integer, unique=False, nullable=False)
+    number = Column(Integer, unique=False, nullable=False)
     jobToDo = Column(String(80), unique=False, nullable=False)
-    request_id = Column(Integer, unique=False, nullable=False)
-    result_numbers = Column(Integer, unique=False, nullable=True)
+    result_number = Column(Integer, unique=False, nullable=True)
     
+    requests = relationship('Requests', secondary='link')
+
     def __repr__(self):
         return '<Numbers %r>' % self.id
+
+
+# Class for relationship : Many-To-Many
+class Link(Base):
+   __tablename__ = 'link'
+   
+   request_id = Column(Integer, ForeignKey('request.request_id'), primary_key = True)
+
+   number_id = Column(Integer, ForeignKey('number.id'), primary_key = True)

@@ -7,7 +7,8 @@ Define polling tasks and EventTask class
 
 from tornado import gen
 
-from main_app.extensions import executor, db
+#from main_app.extensions import executor, db
+from main_app.extensions import executor, db_engine
 from main_app.models import Numbers
 
 
@@ -28,7 +29,7 @@ def make_session():
 
       try:
             # Try to create scope session for Thread Safety
-            session = orm.scoped_session(orm.sessionmaker(bind=db.engine), scopefunc=get_ident)
+            session = orm.scoped_session(orm.sessionmaker(bind=db_engine), scopefunc=get_ident)
       
             yield session
       except Exception as exc:
@@ -125,7 +126,7 @@ def sum_task():
                               for i in range(0,len(numbers_to_sum)):
                                     # Extract id and numbers information
                                     inputJson['numbers_id'].append(numbers_to_sum[i].id)
-                                    inputJson['numbers'].append(numbers_to_sum[i].numbers)
+                                    inputJson['numbers'].append(numbers_to_sum[i].number)
 
                                     # Update jobToDo with Doing
                                     numbers_to_sum[i].jobToDo = "sum_Doing"
@@ -181,7 +182,7 @@ def mul_task():
                               for i in range(0,len(numbers_to_mul)):
                                     # Extract id and numbers information
                                     inputJson['numbers_id'].append(numbers_to_mul[i].id)
-                                    inputJson['numbers'].append(numbers_to_mul[i].numbers)
+                                    inputJson['numbers'].append(numbers_to_mul[i].number)
 
                                     # Update jobToDo with Doing
                                     numbers_to_mul[i].jobToDo = "mul_Doing"
