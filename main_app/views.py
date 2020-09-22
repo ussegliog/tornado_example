@@ -117,7 +117,6 @@ class NumberRequest(RequestHandler):
                     
                     session.add(my_number)
 
-                print(request_id)
                 session.add(my_request)
 
             # Save chgts into our DB : At the end of context manager (same "everywhere")
@@ -137,15 +136,9 @@ class NumberRequest(RequestHandler):
         with make_session() as session:
 
             request_id = rid
-            print(request_id)
 
             # Query into request table thanks to request_id
             required_request = session.query(Requests).filter_by(request_id=request_id).first()
-
-
-            # Query into numbers table thanks to many-to-many relationship (with Link table)
-            required_numbers = session.query(Requests, Numbers).filter(Link.request_id == request_id).all()
-            print(required_numbers)
 
             # Transform elt to have input request format
             jsonDict['rid'] = request_id
@@ -153,12 +146,12 @@ class NumberRequest(RequestHandler):
             jsonDict['numbers'] = []
             jsonDict['jobtodo'] = []
             jsonDict['results'] = []
-            
-            #if len(required_numbers) > 0 :
-            for x in session.query(Requests, Numbers).filter(Link.request_id == request_id).all():
-                jsonDict['numbers'].append(x.Numbers.number)
-                jsonDict['jobtodo'].append(x.Numbers.jobToDo)
-                jsonDict['results'].append(x.Numbers.result_number)
+
+            # All query to retrieve all numbers for a specific request_id
+            for x in session.query(Numbers).join(Link).filter(Link.request_id==request_id).all():
+                jsonDict['numbers'].append(x.number)
+                jsonDict['jobtodo'].append(x.jobToDo)
+                jsonDict['results'].append(x.result_number)
                 
 
         return jsonDict
@@ -274,8 +267,8 @@ class Update_NumberRequest(NumberRequest):
                     my_number.result_number = res_list[i]
 
                     # Store rid for current number
-                    for x in session.query(Requests, Numbers).filter(Link.number_id == Ntable_id[i]).all():
-                        rId_list.append(x.Requests.request_id)
+                    for x in session.query(Requests).join(Link).filter(Link.number_id == Ntable_id[i]).all():
+                        rId_list.append(x.request_id)
 
                 # Udpate then, Request_Table
                 # Get unique rid into our list
@@ -286,10 +279,9 @@ class Update_NumberRequest(NumberRequest):
 
                     # Check if request is totally processed
                     jobToDo_for_current_rid = []
-                    for x in session.query(Requests, Numbers).filter(Link.request_id == rid).all():
-                        jobToDo_for_current_rid.append(x.Numbers.jobToDo)
+                    for x in session.query(Numbers).join(Link).filter(Link.request_id == rid).all():
+                        jobToDo_for_current_rid.append(x.jobToDo)
 
-                    
                     if not ("sum" in jobToDo_for_current_rid or "mul" in jobToDo_for_current_rid) :
                         my_request = session.query(Requests).get(rid)
                         # Change to processed = True
