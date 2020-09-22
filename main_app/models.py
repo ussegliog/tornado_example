@@ -32,7 +32,7 @@ class Numbers(Base):
     __tablename__ = "number"
     
     id = Column(Integer, primary_key=True)
-    number = Column(Integer, unique=False, nullable=False)
+    number = Column(Integer, unique=True, nullable=False)
     jobToDo = Column(String(80), unique=False, nullable=False)
     result_number = Column(Integer, unique=False, nullable=True)
     

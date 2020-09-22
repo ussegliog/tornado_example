@@ -89,9 +89,13 @@ class NumberRequest(RequestHandler):
     def handle_post(self, form_data) :
         response = "OK"
           
-        number_list=pickle.dumps(form_data['numbers'])
-        jobtodo_list=pickle.dumps(form_data['jobtodo'])
+        number_list=form_data['numbers']
+        jobtodo_list=form_data['jobtodo']
         request_id = form_data['rid']
+
+        # To test uniqueness
+        #number_list = [1, 2]
+        #jobtodo_list = ["sum","sum"]
 
         #time.sleep(10)
         
@@ -106,25 +110,44 @@ class NumberRequest(RequestHandler):
                 
                 # Second into number table
                 # Loop on number_list and jobtodo_list to store one by one number into number table
-                for i in range(0, len(form_data['numbers'])):
-                    my_number = Numbers(number=form_data['numbers'][i],
-                                        jobToDo=form_data['jobtodo'][i],
-                                        result_number=form_data['numbers'][i])
+                for i in range(0, len(number_list)):
+
+                    try :
+                        my_number = Numbers(number=number_list[i],
+                                            jobToDo=jobtodo_list[i],
+                                            result_number=number_list[i])
+
+                        # Link request to my_number
+                        my_number.requests.append(my_request)
+                        #my_request.numbers.append(my_number)
+
+                        session.add(my_number)
+
+                        # Explitcit commit and check if number is unique (already into our DB)
+                        session.commit()
                     
-                    # Link request to my_number
-                    my_number.requests.append(my_request)
-                    #my_request.numbers.append(my_number)
-                    
-                    session.add(my_number)
+                    except sqlalchemy.exc.IntegrityError :
+                        # Cancel previous add
+                        session.rollback()
+                        
+                        # Query on current number (already into our DB)
+                        my_number = session.query(Numbers).filter_by(number=number_list[i]).first()
+                        
+                        # Link request to my_number
+                        my_number.requests.append(my_request)
+
+                        # Explicit commit to have a persistent link
+                        session.commit()
 
                 session.add(my_request)
 
-            # Save chgts into our DB : At the end of context manager (same "everywhere")
+            # Save chgts with an implicit commit into our DB : At the end of context manager (same "everywhere")
 
         except sqlalchemy.exc.IntegrityError :
             # Adapt response if exception (usually if rid is already into request table)
             response = "Error during DB transaction : Please Check the request" 
-            print(response + " (rid must already be registered into DB) ")
+            print(response + " (rid or number must already be registered into DB) ")
+          
         except :
             response = "Error during post request"
 
