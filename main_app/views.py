@@ -98,6 +98,7 @@ class NumberRequest(RequestHandler):
         #jobtodo_list = ["sum","sum"]
 
         #time.sleep(10)
+        time1 = time.time()
         
         # Put the request into our DB : into request and number tables
         try :
@@ -112,37 +113,23 @@ class NumberRequest(RequestHandler):
                 # Loop on number_list and jobtodo_list to store one by one number into number table
                 for i in range(0, len(number_list)):
 
-                    try :
-                        my_number = Numbers(number=number_list[i],
-                                            jobToDo=jobtodo_list[i],
-                                            result_number=number_list[i])
+                    my_number = Numbers(number=number_list[i],
+                                        jobToDo=jobtodo_list[i],
+                                        result_number=number_list[i])
 
-                        # Link request to my_number
-                        my_number.requests.append(my_request)
-                        #my_request.numbers.append(my_number)
+                    # Link request to my_number
+                    my_number.requests.append(my_request)
+                    #my_request.numbers.append(my_number)
 
+                    if not session.query(Numbers).filter_by(number=number_list[i]).first() :
                         session.add(my_number)
 
-                        # Explitcit commit and check if number is unique (already into our DB)
-                        session.commit()
-                    
-                    except sqlalchemy.exc.IntegrityError :
-                        # Cancel previous add
-                        session.rollback()
-                        
-                        # Query on current number (already into our DB)
-                        my_number = session.query(Numbers).filter_by(number=number_list[i]).first()
-                        
-                        # Link request to my_number
-                        my_number.requests.append(my_request)
-
-                        # Explicit commit to have a persistent link
-                        session.commit()
-
+                # Add request
                 session.add(my_request)
 
             # Save chgts with an implicit commit into our DB : At the end of context manager (same "everywhere")
 
+            
         except sqlalchemy.exc.IntegrityError :
             # Adapt response if exception (usually if rid is already into request table)
             response = "Error during DB transaction : Please Check the request" 
@@ -151,30 +138,33 @@ class NumberRequest(RequestHandler):
         except :
             response = "Error during post request"
 
+        time2 = time.time()
+
+        print("time to put data into DB : " + str(time2-time1))
     
     # Get Results into our db for a given rid
     def queryDb_withRid(self, rid):
         jsonDict = {}
-        # make_session from tasks.py
-        with make_session() as session:
+        # make_session from tasks.py with a timeout to avoid to block the IOLoop (only one process)
+        with make_session(timeout=2) as session:
+            if session :
+                request_id = rid
 
-            request_id = rid
+                # Query into request table thanks to request_id
+                required_request = session.query(Requests).filter_by(request_id=request_id).first()
 
-            # Query into request table thanks to request_id
-            required_request = session.query(Requests).filter_by(request_id=request_id).first()
+                # Transform elt to have input request format
+                jsonDict['rid'] = request_id
+                jsonDict['processed'] = required_request.processed
+                jsonDict['numbers'] = []
+                jsonDict['jobtodo'] = []
+                jsonDict['results'] = []
 
-            # Transform elt to have input request format
-            jsonDict['rid'] = request_id
-            jsonDict['processed'] = required_request.processed
-            jsonDict['numbers'] = []
-            jsonDict['jobtodo'] = []
-            jsonDict['results'] = []
-
-            # All query to retrieve all numbers for a specific request_id
-            for x in session.query(Numbers).join(Link).filter(Link.request_id==request_id).all():
-                jsonDict['numbers'].append(x.number)
-                jsonDict['jobtodo'].append(x.jobToDo)
-                jsonDict['results'].append(x.result_number)
+                # All query to retrieve all numbers for a specific request_id
+                for x in session.query(Numbers).join(Link).filter(Link.request_id==request_id).all():
+                    jsonDict['numbers'].append(x.number)
+                    jsonDict['jobtodo'].append(x.jobToDo)
+                    jsonDict['results'].append(x.result_number)
                 
 
         return jsonDict
@@ -237,13 +227,15 @@ class NumberRequest(RequestHandler):
 
         # Create a EventTask
         task = EventTask(task_id, self.form_data['rid'])
+
+        print("Pouet1")
         
         # Store the task inside the dictionary
         with (yield lock_tasks.acquire()):
             tasks[str(task_id)] = task
             print("Add from NumberRequest a tasks into our global dict (size : " + str(len(tasks)) + " ) ")
             
-            
+        print("Pouet2")    
         task.status = "started (put request into our db)"
 
         # If yield => wait and retrun a response if not yield => future
@@ -252,6 +244,8 @@ class NumberRequest(RequestHandler):
         # Adapt future to store and get result later
         concurent_Future.arg = str(task_id)
         concurent_Future.add_done_callback(self.done)
+
+        print("Pouet3")
         
         # post response : task_id
         self.send_response(json.dumps({'task_id': str(task_id)}), 201)

@@ -21,25 +21,45 @@ import subprocess
 from contextlib import contextmanager
 from threading import get_ident
 from sqlalchemy import orm
+from main_app.extensions import sem_db
 
 ##### Our contexte Manager : for session handle (from tornado_sqlalchemy with scoped session) ######
 @contextmanager
-def make_session():
+def make_session(timeout=-1):
       session = None
-
-      try:
-            # Try to create scope session for Thread Safety
-            session = orm.scoped_session(orm.sessionmaker(bind=db_engine), scopefunc=get_ident)
+      global sem_db
       
-            yield session
+      try:
+            # Try to create scope and local session for Thread Safety
+            # A session involves a connection => Every call at the contextmanager =  a connection
+            # warning : the number of available connections depends on the kind of the DB and
+            # the permissions => semaphore (with the number of connections)
+            lock_ok = True
+            if timeout < 0 :
+                  lock_ok = sem_db.acquire()
+            else :
+                  lock_ok = sem_db.acquire(timeout=timeout)
+                  
+            if lock_ok :
+                  session = orm.scoped_session(orm.sessionmaker(bind=db_engine),
+                                               scopefunc=get_ident)
+      
+                  yield session
+            
+            else :
+                  yield
+                  
       except Exception as exc:
             print(exc)
             if session:
                   session.rollback()
             raise
       else:
-            session.commit()
+            if session :
+                  session.commit()
       finally:
+            if lock_ok :
+                  sem_db.release()
             if session:
                   session.close()
 
@@ -110,27 +130,29 @@ def sum_task():
 
             # Make the query on number to retrieve the input for sum processing
             try :
-                  with make_session() as session:
+                  with make_session(timeout=2) as session: # with a timeout of 2s to get a session
 
-                        # Select into Numbers table, number with sum to do
-                        numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
-                                                      
-                        # Check number to sum (must be > 0)
-                        if len(numbers_to_sum) > 0:
-                              print("Number of sum : " + str(len(numbers_to_sum)))
+                        if session :
+                              # Select into Numbers table, number with sum to do
+                              numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
 
-                              # Write numbers into a file
-                              inputJson['numbers_id'] = []
-                              inputJson['numbers'] = []
+                              # Check number to sum (must be > 0)
+                              if len(numbers_to_sum) > 0:
+                                    print("Number of sum : " + str(len(numbers_to_sum)))
 
-                              for i in range(0,len(numbers_to_sum)):
-                                    # Extract id and numbers information
-                                    inputJson['numbers_id'].append(numbers_to_sum[i].id)
-                                    inputJson['numbers'].append(numbers_to_sum[i].number)
+                                    # Write numbers into a file
+                                    inputJson['numbers_id'] = []
+                                    inputJson['numbers'] = []
 
-                                    # Update jobToDo with Doing
-                                    numbers_to_sum[i].jobToDo = "sum_Doing"
+                                    for i in range(0,len(numbers_to_sum)):
+                                          # Extract id and numbers information
+                                          inputJson['numbers_id'].append(numbers_to_sum[i].id)
+                                          inputJson['numbers'].append(numbers_to_sum[i].number)
 
+                                          # Update jobToDo with Doing
+                                          numbers_to_sum[i].jobToDo = "sum_Doing"
+                        else :
+                              print("Timeout for DB")
                         
             except Exception as exc :
                   response = "Error INTO SUM during post request : "
@@ -166,27 +188,30 @@ def mul_task():
 
             # Make the query on number to retrieve the input for mul processing
             try :
-                  with make_session() as session:
+                  with make_session(timeout=2) as session: # with a timeout of 2s to get a session
 
-                        # Select into Numbers table, number with mul to do
-                        numbers_to_mul = session.query(Numbers).filter_by(jobToDo="mul").all()
+                        if session :
+                              # Select into Numbers table, number with mul to do
+                              numbers_to_mul = session.query(Numbers).filter_by(jobToDo="mul").all()
 
-                        # Check number to mul (must be > 0)
-                        if len(numbers_to_mul) > 0:
-                              print("Number of mul : " + str(len(numbers_to_mul)))
+                              # Check number to mul (must be > 0)
+                              if len(numbers_to_mul) > 0:
+                                    print("Number of mul : " + str(len(numbers_to_mul)))
 
-                              # Write numbers into a file
-                              inputJson['numbers_id'] = []
-                              inputJson['numbers'] = []
+                                    # Write numbers into a file
+                                    inputJson['numbers_id'] = []
+                                    inputJson['numbers'] = []
 
-                              for i in range(0,len(numbers_to_mul)):
-                                    # Extract id and numbers information
-                                    inputJson['numbers_id'].append(numbers_to_mul[i].id)
-                                    inputJson['numbers'].append(numbers_to_mul[i].number)
+                                    for i in range(0,len(numbers_to_mul)):
+                                          # Extract id and numbers information
+                                          inputJson['numbers_id'].append(numbers_to_mul[i].id)
+                                          inputJson['numbers'].append(numbers_to_mul[i].number)
 
-                                    # Update jobToDo with Doing
-                                    numbers_to_mul[i].jobToDo = "mul_Doing"
-                                    
+                                          # Update jobToDo with Doing
+                                          numbers_to_mul[i].jobToDo = "mul_Doing"
+
+                        else :
+                              print("Timeout for DB")
             except Exception as exc :
                   response = "Error INTO MUL during post request : "
                   print(response + str((exc)))
