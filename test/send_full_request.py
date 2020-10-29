@@ -4,9 +4,6 @@
 import requests
 import argparse
 import json
-from tornado import httpclient
-from tornado.ioloop import IOLoop
-from tornado import gen
 import functools
 import time
 import random
@@ -24,9 +21,9 @@ processings = ["sum", "mul"]
 def main(nb, ip):
 
     # Use requests module with ip to reach tornado server
-    BASE_URL = "http://" + ip + ":8888/"
+    BASE_URL = "http://" + ip + ":8889/"
         
-    #### request POST on http://ip:8888/number_request #### 
+    #### request POST on http://ip:8889/number_request #### 
     print("\nFirst Step : Send a post request ")
 
     # Build data
@@ -66,7 +63,7 @@ def main(nb, ip):
         quit()
 
     
-    #### request GET on http://ip:8888/number_request and wait to et result (if not into db yet) #### 
+    #### request GET on http://ip:8889/number_request and wait to et result (if not into db yet) #### 
     print("\nSecond Step : Send a get request (wait until status and processed is done)")
     
     while True :

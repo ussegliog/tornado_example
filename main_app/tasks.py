@@ -21,7 +21,9 @@ import subprocess
 from contextlib import contextmanager
 from threading import get_ident
 from sqlalchemy import orm
+
 from main_app.extensions import sem_db
+from config.settings import server_state
 
 ##### Our contexte Manager : for session handle (from tornado_sqlalchemy with scoped session) ######
 @contextmanager
@@ -121,57 +123,61 @@ def sum_task():
       while True:
 
             yield gen.sleep(10)
-      
-            # Generate a task_id with uuid
-            currentTaskId = uuid.uuid1()
 
-            inputJson = {}
-            numbers_to_sum = [] # empty list
+            if server_state.PBS_ok :
+                  # Generate a task_id with uuid
+                  currentTaskId = uuid.uuid1()
 
-            # Make the query on number to retrieve the input for sum processing
-            try :
-                  with make_session(timeout=2) as session: # with a timeout of 2s to get a session
+                  inputJson = {}
+                  numbers_to_sum = [] # empty list
 
-                        if session :
-                              # Select into Numbers table, number with sum to do
-                              numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
+                  # Make the query on number to retrieve the input for sum processing
+                  try :
+                        with make_session(timeout=2) as session: # with a timeout of 2s to get a session
 
-                              # Check number to sum (must be > 0)
-                              if len(numbers_to_sum) > 0:
-                                    print("Number of sum : " + str(len(numbers_to_sum)))
+                              if session :
+                                    # Select into Numbers table, number with sum to do
+                                    numbers_to_sum = session.query(Numbers).filter_by(jobToDo="sum").all()
 
-                                    # Write numbers into a file
-                                    inputJson['numbers_id'] = []
-                                    inputJson['numbers'] = []
+                                    # Check number to sum (must be > 0)
+                                    if len(numbers_to_sum) > 0:
+                                          print("Number of sum : " + str(len(numbers_to_sum)))
 
-                                    for i in range(0,len(numbers_to_sum)):
-                                          # Extract id and numbers information
-                                          inputJson['numbers_id'].append(numbers_to_sum[i].id)
-                                          inputJson['numbers'].append(numbers_to_sum[i].number)
+                                          # Write numbers into a file
+                                          inputJson['numbers_id'] = []
+                                          inputJson['numbers'] = []
 
-                                          # Update jobToDo with Doing
-                                          numbers_to_sum[i].jobToDo = "sum_Doing"
-                        else :
-                              print("Timeout for DB")
+                                          for i in range(0,len(numbers_to_sum)):
+                                                # Extract id and numbers information
+                                                inputJson['numbers_id'].append(numbers_to_sum[i].id)
+                                                inputJson['numbers'].append(numbers_to_sum[i].number)
+
+                                                # Update jobToDo with Doing
+                                                numbers_to_sum[i].jobToDo = "sum_Doing"
+                              else :
+                                    print("Timeout for DB")
+
+                  except Exception as exc :
+                        response = "Error INTO SUM during post request : "
+                        print(response + str(exc))
+
+                  # Check number to sum (must be > 0)
+                  if len(numbers_to_sum) > 0:
+
+                        # Write the json file
+                        JSON_PATH = os.path.join(Path(__file__).parent.parent, 'processings/input_files/')
+                        JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
+                        with open(JSON_NAME, 'w') as f:
+                              json.dump(inputJson, f)
+
+                        # Launch sum processing with a SubProcess
+                        SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/sum.py')
+                        python_script(SCRIPT_PATH, JSON_NAME)
+
+            # PBS not OK : Just a print
+            else :
+                  print("Nothing for sum ! (PBS_KO)")
                         
-            except Exception as exc :
-                  response = "Error INTO SUM during post request : "
-                  print(response + str(exc))
-
-            # Check number to sum (must be > 0)
-            if len(numbers_to_sum) > 0:
-
-                  # Write the json file
-                  JSON_PATH = os.path.join(Path(__file__).parent.parent, 'processings/input_files/')
-                  JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
-                  with open(JSON_NAME, 'w') as f:
-                        json.dump(inputJson, f)
-                  
-                  # Launch sum processing with a SubProcess
-                  SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/sum.py')
-                  python_script(SCRIPT_PATH, JSON_NAME)
-              
-
 # Mul
 @gen.coroutine
 def mul_task():

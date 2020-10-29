@@ -12,7 +12,7 @@ Script to apply a simple sum to input number (called as subProcess)
 if __name__ == "__main__":
 
     # Global variables for requests
-    BASE_URL = "http://127.0.0.1:8888/"
+    BASE_URL = "http://127.0.0.1:8889/"
     headers = {"Content-type": "application/json"}
     
     # Get input

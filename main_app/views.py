@@ -23,6 +23,8 @@ from main_app.models import Link
 from main_app.extensions import executor
 from main_app.tasks import EventTask, make_session
 
+from config.settings import server_state
+
 # list of tasks to store future and get result/status : Global
 tasks = dict()
 lock_tasks = locks.Lock()
@@ -173,6 +175,10 @@ class NumberRequest(RequestHandler):
     @gen.coroutine
     def get(self):
         """Handle a GET request and get input data."""
+
+        # Just simulate a PBS error to block the sum task
+        server_state.launch_checks("pbs")
+        
 
         # Two kind of get : one for checking if task_id is done and the other to get rid elt
         if 'rid' in self.form_data :

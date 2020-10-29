@@ -4,9 +4,6 @@
 import requests
 import argparse
 import json
-from tornado import httpclient
-from tornado.ioloop import IOLoop
-from tornado import gen
 import functools
 import time
 import random
@@ -24,13 +21,13 @@ processings = ["sum", "mul"]
 def main(task_id, ip):
     
     # Use requests module with ip to reach tornado server
-    BASE_URL = "http://" + ip + ":8888/"
+    BASE_URL = "http://" + ip + ":8889/"
     
     # Build data with only task_id
     dataRequest = {}
     dataRequest["task_id"] = task_id
     
-    #### request GET on http://ip:8888/number_request ####
+    #### request GET on http://ip:8889/number_request ####
     # Get status/response
     req = requests.get(BASE_URL + "number_request",
                         data=json.dumps(dataRequest),
