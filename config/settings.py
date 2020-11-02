@@ -56,12 +56,9 @@ class ServerState(metaclass=Singleton) :
 
         print("self._PBS_ok : " + str(self._PBS_ok))
 
-        # Bool to run only one check in //
-        self_checkIsRunning = False
-        
         # Instanciate a lock (only one for all states)
         self.lock_states = threading.Lock()
-        
+        # Bool to run only one check in //
         self.lock_running = threading.Lock()
 
         # Default Timer
@@ -128,14 +125,14 @@ class ServerState(metaclass=Singleton) :
             check_ok = self._GPFSLatency_ok
             self._GPFS_ok = self._GPFSLantency_ok and self._GPFSMount_ok 
             self.lock_states.release()
-        
-        # If GPFS return OK => Stop the PeriodicCallback
-        if status_toChange and self._GPFSLatency_ok :
-            self.lock_running.acquire()
-            # Get instance into our dict, stop the PeriodicCallback and forget instance 
-            self.dict_Periodics["GPFS_latency"].stop()
-            self.dict_Periodics["GPFS_latency"] = None
-            self.lock_running.release()
+            
+            # If GPFS return OK => Stop the PeriodicCallback
+            if  self._GPFSLatency_ok :
+                self.lock_running.acquire()
+                # Get instance into our dict, stop the PeriodicCallback and forget instance 
+                self.dict_Periodics["GPFS_latency"].stop()
+                self.dict_Periodics["GPFS_latency"] = None
+                self.lock_running.release()
 
 
         return check_ok
@@ -160,13 +157,13 @@ class ServerState(metaclass=Singleton) :
             self._GPFS_ok = self._GPFSLantency_ok and self._GPFSMount_ok 
             self.lock_states.release()
             
-        # If GPFS return OK => Stop the PeriodicCallback
-        if status_toChange and self._GPFSMount_ok :
-            self.lock_running.acquire()
-            # Get instance into our dict, stop the PeriodicCallback and forget instance 
-            self.dict_Periodics["GPFS_mount"].stop()
-            self.dict_Periodics["GPFS_mount"] = None
-            self.lock_running.release()
+            # If GPFS return OK => Stop the PeriodicCallback
+            if self._GPFSMount_ok :
+                self.lock_running.acquire()
+                # Get instance into our dict, stop the PeriodicCallback and forget instance 
+                self.dict_Periodics["GPFS_mount"].stop()
+                self.dict_Periodics["GPFS_mount"] = None
+                self.lock_running.release()
 
 
         return check_ok
@@ -189,14 +186,14 @@ class ServerState(metaclass=Singleton) :
             self._PBS_ok = not self._PBS_ok
             check_ok = self._PBS_ok
             self.lock_states.release()
-            
-        # If PBS return OK => Stop the PeriodicCallback
-        if status_toChange and self._PBS_ok :
-            self.lock_running.acquire()
-            # Get instance into our dict, stop the PeriodicCallback and forget instance 
-            self.dict_Periodics["PBS_qsub"].stop()
-            self.dict_Periodics["PBS_qsub"] = None
-            self.lock_running.release()
+
+            # If PBS return OK => Stop the PeriodicCallback
+            if self._PBS_ok :
+                self.lock_running.acquire()
+                # Get instance into our dict, stop the PeriodicCallback and forget instance 
+                self.dict_Periodics["PBS_qsub"].stop()
+                self.dict_Periodics["PBS_qsub"] = None
+                self.lock_running.release()
     
 
         return check_ok
@@ -208,7 +205,7 @@ class ServerState(metaclass=Singleton) :
         Run some checks according to suspects (can be called by all server : views, tasks ..)
         """
         print("Into launch_checks")
-        self.lock_running.acquire()
+        
         
         # Launch a first check (directly call to check functions)
         # Then, if ko : instanciate/start a or several PeriodicCallback following the "suspect"
@@ -218,27 +215,34 @@ class ServerState(metaclass=Singleton) :
             check_latency = self.check_gpfs_latency()
             check_mount = self.check_gpfs_mount()
 
+            self.lock_running.acquire()
             # For gpfs : Two kinds of problems : latency or mount => two PeriodicCallback
-            # Latency KO => PeriodicCallback to check reguraly
-            if not check_latency : 
+            # Latency KO and None into our dict (do not override a existing/running instance)
+            # => Instanciate and start a PeriodicCallback to check reguraly
+            if not check_latency and not self.dict_Periodics["GPFS_latency"]: 
                 periodic_gpfs_latency = PeriodicCallback(self.check_gpfs_latency, 
                                                          self.timer_ForPeriodic)
                 periodic_gpfs_latency.start()
                 self.dict_Periodics["GPFS_latency"] = periodic_gpfs_latency
 
-            # Mount KO => PeriodicCallback to check reguraly
-            if not check_mount :
+            # Mount KO and None into our dict (do not override a existing/running instance)
+            # => Instanciate and start a PeriodicCallback to check reguraly
+            if not check_mount and not self.dict_Periodics["GPFS_mount"]:
                 periodic_gpfs_mount = PeriodicCallback(self.check_gpfs_mount, 
                                                        self.timer_ForPeriodic)
                 periodic_gpfs_mount.start()
                 self.dict_Periodics["GPFS_mount"] = periodic_gpfs_mount
+
+            self.lock_running.release()
             
         if suspect == "pbs" :
             # Call checks 
             check_pbs = self.check_pbs_qsub()
 
-            # PBS KO => PeriodicCallback to check reguraly
-            if not check_pbs :
+            self.lock_running.acquire()
+            # PBS KO and None into our dict (do not override a existing/running instance)
+            # => Instanciate and start a PeriodicCallback to check reguraly
+            if not check_pbs and not self.dict_Periodics["PBS_qsub"] :
                 # For pbs : qsub problems
                 periodic_pbs_qsub = PeriodicCallback(self.check_pbs_qsub, 
                                                      self.timer_ForPeriodic)
@@ -248,10 +252,11 @@ class ServerState(metaclass=Singleton) :
                 # Store instance into our dict
                 self.dict_Periodics["PBS_qsub"] = periodic_pbs_qsub
 
+            self.lock_running.release()
             
         # Others suspects .....
 
-        self.lock_running.release()
+        
 
 
 
