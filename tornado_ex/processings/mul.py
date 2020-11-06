@@ -22,9 +22,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Get elts from input json file
-    JsonData = {}
-    with open(args.inputjson) as f:
-        JsonData = json.load(f)
+    JsonData = json.loads(args.inputjson)
 
     
     # Init the data after mul processings 

@@ -122,7 +122,7 @@ def sum_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(100)
+            yield gen.sleep(10)
 
             if server_state.PBS_ok :
                   # Generate a task_id with uuid
@@ -167,12 +167,11 @@ def sum_task():
                         # Write the json file
                         JSON_PATH = os.path.join(Path(__file__).parent.parent, 'processings/input_files/')
                         JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
-                        with open(JSON_NAME, 'w') as f:
-                              json.dump(inputJson, f)
+                        jsonstr = json.dumps(inputJson)
 
                         # Launch sum processing with a SubProcess
                         SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/sum.py')
-                        python_script(SCRIPT_PATH, JSON_NAME)
+                        python_script(SCRIPT_PATH, jsonstr)
 
             # PBS not OK : Just a print
             else :
@@ -184,7 +183,7 @@ def mul_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(100)
+            yield gen.sleep(10)
       
             # Generate a task_id with uuid
             currentTaskId = uuid.uuid1()
@@ -217,7 +216,7 @@ def mul_task():
                                           numbers_to_mul[i].jobToDo = "mul_Doing"
 
                         else :
-                              print("Timeout for DB mul task")
+                              print("Timeout for DB inside mul task")
             except Exception as exc :
                   response = "Error INTO MUL during post request : "
                   print(response + str((exc)))
@@ -227,11 +226,13 @@ def mul_task():
 
                   # Write the json file
                   JSON_PATH = os.path.join(Path(__file__).parent.parent, 'processings/input_files/')
-                  JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
-                  with open(JSON_NAME, 'w') as f:
-                        json.dump(inputJson, f)
+                  #JSON_NAME = os.path.join(JSON_PATH, str(currentTaskId) + '.json')
+                  #with open(JSON_NAME, 'w') as f:
+                  #      json.dump(inputJson, f)
 
+                  jsonstr = json.dumps(inputJson)
+                  
                   # Launch mul processing with a SubProcess
                   SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/mul.py')
-                  python_script(SCRIPT_PATH, JSON_NAME)
+                  python_script(SCRIPT_PATH, jsonstr)
 

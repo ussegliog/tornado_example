@@ -17,7 +17,7 @@ from main_app.extensions import Base, db_engine, executor
 
 define('port', default=8889, help='port to listen on')
 
-if __name__ == "__main__":
+def main() :
     """Construct and serve the tornado application."""
     app = Application([
         ('/', HelloWorld),  ('/number_request', NumberRequest),
@@ -40,3 +40,6 @@ if __name__ == "__main__":
     
     print('Listening on http://localhost:%i' % options.port)
     IOLoop.current().start()
+
+if __name__ == "__main__":
+    main()
