@@ -122,7 +122,7 @@ def sum_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(10)
+            yield gen.sleep(100)
 
             if server_state.PBS_ok :
                   # Generate a task_id with uuid
@@ -155,7 +155,7 @@ def sum_task():
                                                 # Update jobToDo with Doing
                                                 numbers_to_sum[i].jobToDo = "sum_Doing"
                               else :
-                                    print("Timeout for DB")
+                                    print("Timeout for DB inside sum task")
 
                   except Exception as exc :
                         response = "Error INTO SUM during post request : "
@@ -184,7 +184,7 @@ def mul_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(10)
+            yield gen.sleep(100)
       
             # Generate a task_id with uuid
             currentTaskId = uuid.uuid1()
@@ -217,7 +217,7 @@ def mul_task():
                                           numbers_to_mul[i].jobToDo = "mul_Doing"
 
                         else :
-                              print("Timeout for DB")
+                              print("Timeout for DB mul task")
             except Exception as exc :
                   response = "Error INTO MUL during post request : "
                   print(response + str((exc)))

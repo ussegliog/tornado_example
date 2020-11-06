@@ -177,7 +177,7 @@ class NumberRequest(RequestHandler):
         """Handle a GET request and get input data."""
 
         # Just simulate a PBS error to block the sum task
-        server_state.launch_checks("pbs")
+        #server_state.launch_checks("pbs")
         
 
         # Two kind of get : one for checking if task_id is done and the other to get rid elt
@@ -276,7 +276,8 @@ class Update_NumberRequest(NumberRequest):
  
         # List to store request_id for each number
         rId_list = []
-
+        time1 = time.time()
+        
         # Put the request into our DB : into request and number tables
         try :
             # First into request table (make_session from tasks.py)
@@ -289,14 +290,19 @@ class Update_NumberRequest(NumberRequest):
                     my_number.jobToDo = JTD_list[i]
                     my_number.result_number = res_list[i]
 
-                    # Store rid for current number
-                    for x in session.query(Requests).join(Link).filter(Link.number_id == Ntable_id[i]).all():
-                        rId_list.append(x.request_id)
+                time1_int = time.time()
 
+                # Store rid for current number
+                for x in session.query(Requests).join(Link).filter(Link.number_id.in_(Ntable_id)).all():
+                    rId_list.append(x.request_id)
+                    
+                time2_int = time.time()
+                    
                 # Udpate then, Request_Table
                 # Get unique rid into our list
                 rid_unique = set(rId_list)
-
+                    
+                
                 # Loop on each unique rid
                 for rid in rid_unique:
 
@@ -309,12 +315,19 @@ class Update_NumberRequest(NumberRequest):
                         my_request = session.query(Requests).get(rid)
                         # Change to processed = True
                         my_request.processed = True
-                  
+                    
             
         except Exception as exc :
             response = "Error INTO update_post during post request : "
             print(response + str(type(exc)))
 
+            
+        time2 = time.time()
+
+        print("time to update data into DB : " + str(time2-time1))
+        print("For information, time to update numbers : " + str(time1_int-time1))
+        print("For information, time to find rids is : " + str(time2_int-time1_int))
+        
         response = "OK"
 
         

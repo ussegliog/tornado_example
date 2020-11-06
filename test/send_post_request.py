@@ -30,8 +30,8 @@ def main(nb, ip):
     dataRequest["jobtodo"] = []
     
     for n in range(0,int(nb)):
-        dataRequest["rid"] = random.randint(0, 100000)
-        dataRequest["numbers"].append(random.randint(0, 100000))
+        dataRequest["rid"] = random.randint(0, 10000000)
+        dataRequest["numbers"].append(random.randint(0, 10000000))
         dataRequest["jobtodo"].append(random.choice(processings))
 
     if (int(nb) > 10) :

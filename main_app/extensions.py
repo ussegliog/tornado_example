@@ -12,7 +12,7 @@ from config.settings import SQLALCHEMY_DATABASE_URI
 import threading
 
 # thread pool for async background tasks
-executor = concurrent.futures.ThreadPoolExecutor(8)
+executor = concurrent.futures.ThreadPoolExecutor(2)
 # Database
 db_engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
 Base = declarative_base()

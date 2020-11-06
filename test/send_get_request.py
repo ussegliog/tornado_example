@@ -36,17 +36,19 @@ def main(task_id, ip):
     reqDict = json.loads(req.text)
     
     print("status : " + str(reqDict['status']))
-    
-    if 'numbers' in reqDict:
-        if len(reqDict["numbers"]) > 10:
-            print("Number too large => display only the first ones (10)")
-            print("numbers : " +  str(reqDict["numbers"][0:10]))
-            print("jobtodo : " + str(reqDict["jobtodo"][0:10]))
-            print("results : " + str(reqDict["results"][0:10]))
-        else :
-            print("numbers : " +  str(reqDict["numbers"]))
-            print("jobtodo : " + str(reqDict["jobtodo"]))
-            print("results : " + str(reqDict["results"]))
+
+    if str(reqDict['status']).startswith("done") :
+        print("request is processed : " + str(reqDict['processed'])) 
+        if 'numbers' in reqDict:
+            if len(reqDict["numbers"]) > 10:
+                print("Number too large => display only the first ones (10)")
+                print("numbers : " +  str(reqDict["numbers"][0:10]))
+                print("jobtodo : " + str(reqDict["jobtodo"][0:10]))
+                print("results : " + str(reqDict["results"][0:10]))
+            else :
+                print("numbers : " +  str(reqDict["numbers"]))
+                print("jobtodo : " + str(reqDict["jobtodo"]))
+                print("results : " + str(reqDict["results"]))
 
 # Main Program
 if __name__ == "__main__":
