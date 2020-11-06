@@ -36,6 +36,17 @@ This directory contains all mechanisms to handle requests, background tasks and 
 * *tasks* : Implement background tasks (launched by application)
 
 
+## Installation
+
+A setup was developed to configure an installation.
+
+You can install this application with : *python setup.py install --prefix=<install_directory>*
+
+To launch application, just call tornado_ex binary at <install_dirctory>/bin.
+
+`
+NB : Before launching tornado_ex binary, you have to set your PYTHONPATH to <install_directory>/lib/python3.7/site-packages/ and <install_directory>/lib/python3.7/site-packages/tornado_ex-0.0.0-py3.7.egg/tornado_ex
+`
 
 ## Limitations
 Despite several protections, the code remains unstable. First of all, the DataBase access across tornado-sqlalchemy is not Thread-Safe. A new context manager was created to include scoped session. Other problems occur with our Database with for example, sqlalchemy.exc.OperationalError due to a lock on the DB. A higher lock could be useful to solve this.
