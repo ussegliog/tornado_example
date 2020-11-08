@@ -1,0 +1,26 @@
+[Unit]
+Description=Tornado example
+
+# Start the service after mult-user (all logins) on
+After=multi-user.target
+
+
+[Service]
+# User
+User=gaelle
+
+# Install directory for tornado directory (local : /home/gaelle/Programming/Web_Services/tornado/install_tornado/)
+# Variable environnement, only PYTHONPATH and PYTHONUNBUFFERED (to write stdout into a specific file)
+Environment="PYTHONPATH=/home/gaelle/Programming/Web_Services/tornado/install_tornado/lib/python3.7/site-packages/:/home/gaelle/Programming/Web_Services/tornado/install_tornado/lib/python3.7/site-packages/tornado_ex-0.0.0-py3.7.egg/tornado_ex"
+Environment=PYTHONUNBUFFERED=1
+
+# Start command (TODO stop comand with ExecStop), just start the binary
+ExecStart=/bin/sh -c 'exec /home/gaelle/Programming/Web_Services/tornado/install_tornado/bin/tornado_ex > /home/gaelle/Programming/Web_Services/tornado/working_Dir/tornadoEx_service.log  2>&1'
+
+
+# WorkingDirectory (TODO : See if required)
+WorkingDirectory=/home/gaelle/Programming/Web_Services/tornado/working_Dir
+
+[Install]
+# Install as multi-user service
+WantedBy=multi-user.target
