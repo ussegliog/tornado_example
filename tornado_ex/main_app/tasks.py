@@ -122,7 +122,7 @@ def sum_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(10)
+            yield gen.sleep(100)
 
             if server_state.PBS_ok :
                   # Generate a task_id with uuid
@@ -183,7 +183,7 @@ def mul_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(10)
+            yield gen.sleep(100)
       
             # Generate a task_id with uuid
             currentTaskId = uuid.uuid1()
