@@ -40,10 +40,14 @@ if __name__ == "__main__":
         dataMul['result'].append(res)
         
     # Make the upate with the web service request
-    req = requests.post(BASE_URL + "update_request",
-                        data=json.dumps(dataMul),
-                        headers=headers)
-
+    try :
+        req = requests.post(BASE_URL + "update_request",
+                            data=json.dumps(dataMul),
+                            headers=headers)
+    except requests.exceptions.ConnectionError :
+        print("Connection refused (Probably closed)")
+        exit(1)
+        
     # Check status code (must be 200 or 201)
     if req.status_code != 200 and req.status_code != 201 :
         print("status code sended by http shows a error : " + str(req.status_code))

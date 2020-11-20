@@ -122,7 +122,7 @@ def sum_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(100)
+            yield gen.sleep(10)
 
             if server_state.PBS_ok :
                   # Generate a task_id with uuid
@@ -147,7 +147,9 @@ def sum_task():
                                           inputJson['numbers_id'] = []
                                           inputJson['numbers'] = []
 
-                                          for i in range(0,len(numbers_to_sum)):
+                                          min_number = min(len(numbers_to_sum), 200)
+                                          
+                                          for i in range(0, min_number):
                                                 # Extract id and numbers information
                                                 inputJson['numbers_id'].append(numbers_to_sum[i].id)
                                                 inputJson['numbers'].append(numbers_to_sum[i].number)
@@ -183,7 +185,9 @@ def mul_task():
       # Infinite loop 
       while True:
 
-            yield gen.sleep(100)
+            yield gen.sleep(10)
+
+            print("start mul")
       
             # Generate a task_id with uuid
             currentTaskId = uuid.uuid1()
@@ -193,7 +197,7 @@ def mul_task():
 
             # Make the query on number to retrieve the input for mul processing
             try :
-                  with make_session(timeout=2) as session: # with a timeout of 2s to get a session
+                  with make_session(timeout=20) as session: # with a timeout of 2s to get a session
 
                         if session :
                               # Select into Numbers table, number with mul to do
@@ -207,7 +211,9 @@ def mul_task():
                                     inputJson['numbers_id'] = []
                                     inputJson['numbers'] = []
 
-                                    for i in range(0,len(numbers_to_mul)):
+                                    min_number = min(len(numbers_to_mul), 200)
+
+                                    for i in range(0, min_number):
                                           # Extract id and numbers information
                                           inputJson['numbers_id'].append(numbers_to_mul[i].id)
                                           inputJson['numbers'].append(numbers_to_mul[i].number)
@@ -236,3 +242,5 @@ def mul_task():
                   SCRIPT_PATH = os.path.join(Path(__file__).parent.parent, 'processings/mul.py')
                   python_script(SCRIPT_PATH, jsonstr)
 
+
+            print("end mul")
