@@ -45,6 +45,11 @@ You can install this application with : *python setup.py install --prefix=<insta
 To launch application, just call tornado_ex binary at <install_dirctory>/bin.
 
 An example of service file is available into share directory. A similar file can be copied in /etc/systemd/system to include this application as a service.
+Once the file copied, you can start the service with following commands and root privileges :
+```
+systemctl daemon-reload
+systemctl start tornado_ex
+```
 
 `
 NB : Before launching tornado_ex binary, you have to set your PYTHONPATH to <install_directory>/lib/python3.7/site-packages/ and <install_directory>/lib/python3.7/site-packages/tornado_ex-0.0.0-py3.7.egg/tornado_ex
